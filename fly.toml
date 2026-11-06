@@ -1,0 +1,31 @@
+# Fly.io config for the Afrilinq CRM live demo. Deploy with: fly deploy
+# The machine stops when idle and starts on the next visit; each start (and each deploy) resets to the sample data.
+app = "afrilinq-crm-demo"
+primary_region = "jnb"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "10000"
+  AUTO_SEED = "true"
+  SWEEP_INTERVAL_SECONDS = "60"
+
+[http_service]
+  internal_port = 10000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "60s"
+    interval = "30s"
+    method = "GET"
+    path = "/api/health"
+    timeout = "10s"
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1

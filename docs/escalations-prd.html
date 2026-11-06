@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ticket Escalations PRD</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  :root {
+    --bg: #f6f7fb; --surface: #ffffff; --ink: #0f172a; --ink-2: #334155; --muted: #64748b;
+    --line: #e2e8f0; --brand: #0b2a6b; --brand-soft: #e8edf8; --accent: #e8590c;
+    --ok: #065f46; --ok-bg: #d1fae5; --warn: #92400e; --warn-bg: #fef3c7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1120; --surface: #111827; --ink: #e5e7eb; --ink-2: #cbd5e1; --muted: #94a3b8;
+      --line: #1f2937; --brand: #93b4ff; --brand-soft: #1b2745; --accent: #fb923c;
+      --ok: #6ee7b7; --ok-bg: #06281f; --warn: #fcd34d; --warn-bg: #3a2a07; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+      --bg: #0b1120; --surface: #111827; --ink: #e5e7eb; --ink-2: #cbd5e1; --muted: #94a3b8;
+      --line: #1f2937; --brand: #93b4ff; --brand-soft: #1b2745; --accent: #fb923c;
+      --ok: #6ee7b7; --ok-bg: #06281f; --warn: #fcd34d; --warn-bg: #3a2a07; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 920px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  header.top { border-bottom: 3px solid var(--brand); padding-bottom: 16px; margin-bottom: 8px; }
+  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: 28px; line-height: 1.2; margin: 6px 0 12px; color: var(--brand); }
+  h2 { font-size: 19px; margin: 36px 0 10px; color: var(--brand); padding-top: 8px; border-top: 1px solid var(--line); }
+  h3 { font-size: 15px; margin: 18px 0 6px; color: var(--ink); }
+  p, li, td { color: var(--ink-2); }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px 16px; font-size: 13px; }
+  .meta div span { display: block; color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .05em; }
+  .meta div b { color: var(--ink); font-weight: 600; }
+  nav.toc { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; margin: 20px 0; font-size: 14px; }
+  nav.toc ol { margin: 6px 0 0; padding-left: 20px; columns: 2; column-gap: 24px; }
+  nav.toc a { color: var(--brand); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--brand-soft); color: var(--brand); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td code, p code, li code { font-size: 12.5px; background: var(--brand-soft); color: var(--brand); padding: 1px 5px; border-radius: 4px; }
+  .scroll { overflow-x: auto; margin: 8px 0; }
+  .req td:first-child { font-weight: 700; color: var(--ink); white-space: nowrap; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; }
+  .must { background: var(--ok-bg); color: var(--ok); }
+  .later { background: var(--warn-bg); color: var(--warn); }
+  .yes { color: var(--ok); font-weight: 700; } .no { color: var(--muted); }
+  .callout { border-left: 4px solid var(--accent); background: var(--surface); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 12px 0; }
+  .callout p { margin: 0; }
+  svg text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; overflow-x: auto; }
+  footer { margin-top: 40px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+  @media (max-width: 640px) { nav.toc ol { columns: 1; } h1 { font-size: 24px; } }
+  @media print {
+    body { background: #fff; } .wrap { max-width: none; padding: 0; }
+    h2 { break-after: avoid; } table, .diagram { break-inside: avoid; }
+    @page { size: A4; margin: 16mm; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Product requirements document</div>
+    <h1>Ticket escalations: internal escalation and resolution flow</h1>
+    <div class="meta">
+      <div><span>Product</span><b>Afrilinq CRM · Support desk</b></div>
+      <div><span>Status</span><b>Draft · v1 built</b></div>
+      <div><span>Last updated</span><b>26 October 2026</b></div>
+      <div><span>Owner</span><b>Product (to confirm)</b></div>
+      <div><span>Stakeholders</span><b>Support, Engineering, Sales, Onboarding, Management</b></div>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Contents">
+    <strong>Contents</strong>
+    <ol>
+      <li><a href="#summary">Summary</a></li>
+      <li><a href="#problem">Problem</a></li>
+      <li><a href="#goals">Goals and non-goals</a></li>
+      <li><a href="#users">Users and roles</a></li>
+      <li><a href="#stories">User stories</a></li>
+      <li><a href="#flow">Lifecycle and statuses</a></li>
+      <li><a href="#reqs">Functional requirements</a></li>
+      <li><a href="#perms">Permissions</a></li>
+      <li><a href="#notify">Notifications</a></li>
+      <li><a href="#data">Data model</a></li>
+      <li><a href="#ux">Screens</a></li>
+      <li><a href="#metrics">Success metrics</a></li>
+      <li><a href="#edge">Edge cases and rules</a></li>
+      <li><a href="#future">Out of scope and future work</a></li>
+      <li><a href="#questions">Open questions</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="summary">1. Summary</h2>
+  <p>Support agents regularly need help from people outside the support queue: Engineering for defects, a more experienced colleague, the Support Lead, the customer's Sales account owner, the Onboarding owner, or management. Today this happens informally in chat and email, so nobody can see who owns the problem, how long it has waited, or whether it was actually fixed.</p>
+  <p>This feature adds a structured escalation on any open ticket. The flow runs <b>raise → (approve) → accept → update → resolve → confirm</b>, with reopen, reassign, withdraw and decline paths. Response targets come from severity, every step notifies the right people, and an <b>Escalations inbox</b> shows each person what is waiting on them.</p>
+
+  <h2 id="problem">2. Problem</h2>
+  <ul>
+    <li><b>No ownership.</b> Requests to other teams are sent in chat. They get lost, and the customer waits without anyone being accountable.</li>
+    <li><b>Poor engineering hand-offs.</b> Engineering receives vague requests ("customer says it's broken") and has to come back for basics, which adds days.</li>
+    <li><b>No closure loop.</b> When another team "fixes" something, support often isn't told, or the fix isn't checked with the customer before the matter is dropped.</li>
+    <li><b>No visibility for leads.</b> Support Leads can't see how many escalations are open, overdue or waiting for approval.</li>
+    <li><b>Cross-team access.</b> People outside support often can't open the ticket they are being asked to help with.</li>
+  </ul>
+
+  <h2 id="goals">3. Goals and non-goals</h2>
+  <h3>Goals</h3>
+  <ol>
+    <li>Any authorised support user can escalate an open ticket to one of six targets in under a minute.</li>
+    <li>Every escalation has one clear owner (a person or a team) and a response due time.</li>
+    <li>Engineering escalations arrive with enough technical detail to start work without follow-up questions.</li>
+    <li>Nothing is closed until the requesting side confirms the fix with the customer.</li>
+    <li>Support Leads control which escalations reach Engineering and Management.</li>
+    <li>Everyone sees their escalation workload in one inbox.</li>
+  </ol>
+  <h3>Non-goals (v1)</h3>
+  <ul>
+    <li>Syncing with an external issue tracker (Jira, Linear, GitHub). Only a reference field is kept.</li>
+    <li>Customer-visible escalation status. Escalations are internal; customers are updated through the ticket conversation.</li>
+    <li>Automatic escalation by rules (e.g. auto-escalate P1 after 2 hours). The SLA sweep already raises the ticket's escalation level separately.</li>
+    <li>Email or Slack delivery of notifications. v1 uses in-app notifications only.</li>
+  </ul>
+
+  <h2 id="users">4. Users and roles</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Role</th><th>What they do with escalations</th></tr></thead>
+    <tbody>
+      <tr><td><b>Support agent</b></td><td>Raises escalations, confirms or reopens after resolution, withdraws. Needs approval to reach Engineering or Management.</td></tr>
+      <tr><td><b>Support Lead</b></td><td>Approves or declines; receives "Support Lead" escalations; sees all open escalations; can act on either side.</td></tr>
+      <tr><td><b>Engineer</b></td><td>Receives team escalations, posts engineering status, root cause and fix version, resolves.</td></tr>
+      <tr><td><b>Sales rep / account owner</b></td><td>Receives commercial escalations (pricing, licences, renewals).</td></tr>
+      <tr><td><b>Onboarding / implementation owner</b></td><td>Receives setup and go-live escalations for customers being onboarded.</td></tr>
+      <tr><td><b>Executive / management</b></td><td>Receives Management escalations about serious customer risk.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="stories">5. User stories</h2>
+  <ol>
+    <li>As a <b>support agent</b>, I want to escalate a ticket to a named colleague, so the right expert owns my question.</li>
+    <li>As a <b>support agent</b>, I want to send a defect to Engineering with reproduction steps and impact, so engineers can start immediately.</li>
+    <li>As a <b>Support Lead</b>, I want to approve or decline agent escalations to Engineering and Management, so those teams only get qualified requests.</li>
+    <li>As an <b>engineer</b>, I want to see escalations assigned to my team and post status updates, so support knows where the fix stands.</li>
+    <li>As a <b>receiver</b>, I want to accept an escalation, so the requester knows someone has it.</li>
+    <li>As a <b>receiver</b>, I want to pass an escalation to a better-placed colleague with a note.</li>
+    <li>As a <b>requester</b>, I want to be told when it's resolved and confirm or reopen after checking with the customer.</li>
+    <li>As a <b>requester</b>, I want to withdraw an escalation I no longer need.</li>
+    <li>As a <b>sales account owner</b>, I want commercial escalations about my accounts to come straight to me.</li>
+    <li>As <b>anyone</b>, I want a single inbox, with a count in the navigation, of what is waiting on me.</li>
+  </ol>
+
+  <h2 id="flow">6. Lifecycle and statuses</h2>
+  <div class="diagram" role="img" aria-label="Escalation lifecycle: pending approval, then waiting to be accepted, in progress, resolved awaiting confirmation, and resolved and confirmed. Side exits: declined, withdrawn, and reopen from resolved or confirmed back to in progress.">
+    <svg viewBox="0 0 870 240" width="100%" style="min-width:660px" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+      <g font-size="12" font-weight="600" text-anchor="middle"><rect x="10" y="90" width="130" height="46" rx="10" fill="var(--warn-bg)" stroke="var(--warn)"/><text x="75" y="111" fill="var(--warn)">Awaiting approval</text><text x="75" y="127" fill="var(--warn)" font-weight="400" font-size="11">pending_approval</text><rect x="190" y="90" width="130" height="46" rx="10" fill="var(--brand-soft)" stroke="var(--brand)"/><text x="255" y="111" fill="var(--brand)">Waiting to accept</text><text x="255" y="127" fill="var(--brand)" font-weight="400" font-size="11">open</text><rect x="370" y="90" width="130" height="46" rx="10" fill="var(--brand-soft)" stroke="var(--brand)"/><text x="435" y="111" fill="var(--brand)">In progress</text><text x="435" y="127" fill="var(--brand)" font-weight="400" font-size="11">in_progress</text><rect x="550" y="90" width="130" height="46" rx="10" fill="var(--ok-bg)" stroke="var(--ok)"/><text x="615" y="111" fill="var(--ok)">Resolved</text><text x="615" y="127" fill="var(--ok)" font-weight="400" font-size="11">resolved</text><rect x="730" y="90" width="130" height="46" rx="10" fill="var(--surface)" stroke="var(--muted)"/><text x="795" y="111" fill="var(--ink)">Confirmed</text><text x="795" y="127" fill="var(--muted)" font-weight="400" font-size="11">closed</text><rect x="10" y="190" width="130" height="36" rx="10" fill="var(--surface)" stroke="var(--muted)" stroke-dasharray="4 3"/><text x="75" y="213" fill="var(--ink-2)">Declined</text><rect x="190" y="190" width="130" height="36" rx="10" fill="var(--surface)" stroke="var(--muted)" stroke-dasharray="4 3"/><text x="255" y="213" fill="var(--ink-2)">Withdrawn</text></g>
+      <g stroke="var(--muted)" stroke-width="1.5" fill="none" marker-end="url(#ar)"><path d="M140 113H188"/><path d="M320 113H368"/><path d="M500 113H548"/><path d="M680 113H728"/><path d="M75 136V188"/><path d="M255 136V188"/><path d="M615 90V60H445V88"/><path d="M795 90V40H425V88"/></g>
+      <g font-size="10.5" fill="var(--muted)" text-anchor="middle"><text x="165" y="108">approve</text><text x="345" y="108">accept</text><text x="525" y="108">resolve</text><text x="705" y="108">confirm</text><text x="98" y="166" text-anchor="start">decline</text><text x="262" y="166" text-anchor="start">withdraw</text><text x="610" y="34">reopen (from resolved or confirmed)</text><text x="75" y="80">agent → Eng / Mgmt only</text></g>
+    </svg>
+  </div>
+  <div class="scroll"><table>
+    <thead><tr><th>Status</th><th>Label in app</th><th>Meaning</th><th>Next</th></tr></thead>
+    <tbody>
+      <tr><td><code>pending_approval</code></td><td>Awaiting approval</td><td>An agent raised an Engineering or Management escalation.</td><td>approve → open; decline → rejected; withdraw</td></tr>
+      <tr><td><code>open</code></td><td>Waiting to be accepted</td><td>Delivered to the receiver, not yet picked up.</td><td>accept or receiver's first update → in_progress; resolve; reassign; withdraw</td></tr>
+      <tr><td><code>in_progress</code></td><td>In progress</td><td>The receiver is working on it.</td><td>resolve; reassign (→ open); withdraw</td></tr>
+      <tr><td><code>resolved</code></td><td>Resolved — awaiting confirmation</td><td>The receiver has explained the fix.</td><td>confirm → closed; reopen → in_progress</td></tr>
+      <tr><td><code>closed</code></td><td>Resolved and confirmed</td><td>The requester confirmed with the customer.</td><td>reopen</td></tr>
+      <tr><td><code>rejected</code></td><td>Declined</td><td>A Support Lead declined it with a reason.</td><td>Final</td></tr>
+      <tr><td><code>cancelled</code></td><td>Withdrawn</td><td>The requester withdrew it.</td><td>Final</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="reqs">7. Functional requirements</h2>
+  <div class="scroll"><table class="req">
+    <thead><tr><th>ID</th><th>Requirement</th><th>Priority</th></tr></thead>
+    <tbody>
+      <tr><td colspan="3"><b>Raising</b></td></tr>
+      <tr><td>ESC-1</td><td>An escalation can only be raised from an <b>open</b> ticket, by a user with <code>tickets.escalate</code>.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-2</td><td>Targets: Engineering team, another support agent, Support Lead, Sales, Onboarding, Management. Each has a hint explaining when to use it.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-3</td><td>Severity P1–P4 is required and defaults to the ticket priority. Due time = raised time + 4h / 24h / 72h / 120h.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-4</td><td>A reason ("What do you need from them?") is required.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-5</td><td>Engineering requires: team, environment, reproduction steps, expected result, actual result, customer impact, business consequence. Evidence and workaround are optional.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-6</td><td>Person targets require a person, except Support Lead (blank = any lead). Sales defaults to the company's account owner. Onboarding defaults to the owner of the customer's active onboarding project. Defaults are labelled in the picker.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-7</td><td>The receiver must be an active user and can't be the requester.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-8</td><td>Raising increases the ticket's escalation level (2, or 3 for Management) and writes an audit entry.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td colspan="3"><b>Approval</b></td></tr>
+      <tr><td>ESC-9</td><td>Engineering and Management escalations raised by a user without <code>tickets.approve_escalation</code> start in <i>Awaiting approval</i>. Leads' own escalations skip approval.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-10</td><td>A lead can approve (optional comment) or decline (comment required). Approval assigns the requested team.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td colspan="3"><b>Working</b></td></tr>
+      <tr><td>ESC-11</td><td>The receiver (the person, a member of the assigned team, an executive for Management, or a lead) can <b>Accept</b>. This records who and when.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-12</td><td>Either side can post internal updates. They are never shown to the customer. A receiver's first update also moves it to In progress.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-13</td><td>Engineering updates can set engineering status (investigating, identified, fix in progress, fix released, won't fix), root cause and fix version. <i>Fix released</i> or <i>won't fix</i> resolves the escalation automatically.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-14</td><td>The receiver can <b>Reassign</b> to another active user with a note. The escalation returns to <i>Waiting to be accepted</i> until the new owner accepts.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-15</td><td>Receivers can see the escalated ticket even if it's outside their normal ticket scope.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td colspan="3"><b>Closing the loop</b></td></tr>
+      <tr><td>ESC-16</td><td><b>Mark resolved</b> requires a resolution note. For Engineering, a ticket in <i>Waiting on engineering</i> moves back to <i>In progress</i> and its SLA clock resumes.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-17</td><td>The requester (raiser, ticket owner or lead) can <b>Confirm resolved</b>, which closes it, or <b>Reopen</b> with a reason, which returns it to In progress and increments <code>reopen_count</code>.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-18</td><td>The requester can <b>Withdraw</b> with a reason while it is awaiting approval, open or in progress.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td colspan="3"><b>Visibility</b></td></tr>
+      <tr><td>ESC-19</td><td>The ticket page shows an Escalations panel. Each escalation shows a progress strip (Raised → Approval → Accepted → Resolved → Confirmed), status, owner, due time, updates, and only the actions the viewer is allowed to take.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-20</td><td>The <code>/escalations</code> inbox has tabs: Assigned to me, My team, Raised by me, Awaiting my confirmation, Needs approval (leads), All open (leads), History.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-21</td><td>The navigation shows a badge counting escalations waiting on the current user.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-22</td><td>Escalations not accepted by their due time are highlighted as overdue in the inbox. Otherwise the row shows “Accept by …” or when it was accepted.</td><td><span class="tag must">Must</span></td></tr>
+      <tr><td>ESC-23</td><td>Escalation reporting: volume by target, time to accept, time to resolve, reopen rate.</td><td><span class="tag later">Later</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="perms">8. Permissions</h2>
+  <p>Requester = the raiser, the ticket owner, or a Support Lead. Receiver = the assigned person, a member of the assigned team, an executive (Management only), or a Support Lead.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Action</th><th>Who</th><th>Allowed in status</th></tr></thead>
+    <tbody>
+      <tr><td>Raise</td><td><code>tickets.escalate</code></td><td>Ticket open</td></tr>
+      <tr><td>Approve / decline</td><td><code>tickets.approve_escalation</code></td><td>pending_approval</td></tr>
+      <tr><td>Accept</td><td>Receiver</td><td>open</td></tr>
+      <tr><td>Add update</td><td>Receiver, requester, or <code>engineering.update</code></td><td>Anything but closed</td></tr>
+      <tr><td>Engineering fields</td><td><code>engineering.update</code> on Engineering escalations</td><td>open, in_progress</td></tr>
+      <tr><td>Reassign</td><td>Receiver</td><td>pending_approval, open, in_progress</td></tr>
+      <tr><td>Mark resolved</td><td>Receiver</td><td>open, in_progress</td></tr>
+      <tr><td>Confirm</td><td>Requester</td><td>resolved</td></tr>
+      <tr><td>Reopen</td><td>Requester</td><td>resolved, closed</td></tr>
+      <tr><td>Withdraw</td><td>Requester</td><td>pending_approval, open, in_progress</td></tr>
+    </tbody>
+  </table></div>
+  <p>All checks are enforced on the server, which reloads the escalation's current status before every action, so an out-of-date page can't act on it. Buttons are hidden when an action isn't allowed.</p>
+
+  <h2 id="notify">9. Notifications (in-app)</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Event</th><th>Who is notified</th></tr></thead>
+    <tbody>
+      <tr><td>Raised, needs approval</td><td>All Support Leads</td></tr>
+      <tr><td>Raised or approved</td><td>Assigned person, or assigned team members; all executives for Management; all leads for an unassigned Support Lead escalation</td></tr>
+      <tr><td>Declined</td><td>Raiser (with the reason)</td></tr>
+      <tr><td>Accepted</td><td>Raiser and ticket owner</td></tr>
+      <tr><td>Update posted</td><td>The other side</td></tr>
+      <tr><td>Reassigned</td><td>New owner (with the note)</td></tr>
+      <tr><td>Resolved</td><td>Raiser and ticket owner: "please confirm"</td></tr>
+      <tr><td>Confirmed</td><td>Resolver and assignee</td></tr>
+      <tr><td>Reopened</td><td>Receivers and the previous resolver</td></tr>
+      <tr><td>Withdrawn</td><td>Receivers</td></tr>
+    </tbody>
+  </table></div>
+  <p>The person who performs an action is never notified about it themselves.</p>
+
+  <h2 id="data">10. Data model</h2>
+  <p>Table <code>ticket_escalations</code> (one ticket → many escalations); updates are stored in <code>escalation_updates</code>.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Field group</th><th>Fields</th></tr></thead>
+    <tbody>
+      <tr><td>Core</td><td><code>ticket_id</code>, <code>kind</code>, <code>severity</code>, <code>status</code>, <code>reason</code>, <code>due_at</code>, <code>created_by</code>, timestamps</td></tr>
+      <tr><td>Routing</td><td><code>assigned_to_id</code>, <code>requested_team_id</code>, <code>assigned_team_id</code>, <code>approved_by</code></td></tr>
+      <tr><td>Lifecycle</td><td><code>accepted_at/by</code>, <code>resolved_at/by</code>, <code>resolution</code>, <code>confirmed_at/by</code>, <code>reopen_count</code></td></tr>
+      <tr><td>Technical context</td><td><code>environment</code>, <code>reproduction_steps</code>, <code>expected_result</code>, <code>actual_result</code>, <code>evidence</code>, <code>customer_impact</code>, <code>business_consequence</code>, <code>workaround</code></td></tr>
+      <tr><td>Engineering</td><td><code>engineering_status</code>, <code>root_cause</code>, <code>fix_version</code>, <code>external_ref</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="ux">11. Screens</h2>
+  <ul>
+    <li><b>Ticket page → Escalations panel</b>: an "Escalate" form that adapts to the target, plus an escalation card per escalation with a progress strip and role-based actions.</li>
+    <li><b>Escalations inbox</b> (<code>/escalations</code>): tabbed list with ticket, customer, target, severity, owner, due time and status. Each row links to the ticket's escalation panel.</li>
+    <li><b>Navigation</b>: "Escalations" item with a count badge.</li>
+    <li><b>Notifications</b>: each notification links straight to <code>/tickets/[id]#escalations</code>.</li>
+  </ul>
+
+  <h2 id="metrics">12. Success metrics</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Metric</th><th>Target (proposed)</th></tr></thead>
+    <tbody>
+      <tr><td>Escalations accepted within the severity response target</td><td>≥ 90%</td></tr>
+      <tr><td>Median time from raise to resolve (P2)</td><td>&lt; 2 business days</td></tr>
+      <tr><td>Engineering escalations needing clarification before work starts</td><td>&lt; 10%</td></tr>
+      <tr><td>Reopen rate after confirmation</td><td>&lt; 5%</td></tr>
+      <tr><td>Resolved escalations confirmed within 2 business days</td><td>≥ 85%</td></tr>
+      <tr><td>Escalations raised outside the CRM (chat/email), per lead survey</td><td>Trending to zero within one quarter</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="edge">13. Edge cases and rules</h2>
+  <ul>
+    <li>A ticket can have several active escalations at once (for example Engineering and Sales).</li>
+    <li>Closing or resolving the ticket doesn't close its escalations; they stay visible until confirmed or withdrawn. The exception is incident escalations, which resolve and reopen with the incident ticket.</li>
+    <li>If the Sales account owner or Onboarding owner is missing or inactive, the user must pick a person.</li>
+    <li>If an assignee is deactivated, a lead reassigns the escalation. Leads can always act as receivers.</li>
+    <li>Declines and withdrawals require a reason so the other side understands why.</li>
+    <li>Reopening a confirmed escalation is allowed and is counted in <code>reopen_count</code>.</li>
+    <li>Incident-type escalations (from the incident flow) use an <code>approved</code> status that behaves like open.</li>
+  </ul>
+
+  <h2 id="future">14. Out of scope and future work</h2>
+  <ul>
+    <li>Two-way sync with Jira, Linear or GitHub issues (the <code>external_ref</code> field is ready).</li>
+    <li>Email and Slack/Teams notifications, and reminder nudges when the due time passes.</li>
+    <li>Escalation reporting dashboard (ESC-23).</li>
+    <li>Rules that auto-escalate, e.g. P1 tickets with no response in N minutes.</li>
+    <li>Linking several tickets to one engineering escalation for widespread bugs.</li>
+  </ul>
+
+  <h2 id="questions">15. Open questions</h2>
+  <ol>
+    <li>Should Sales escalations about discounts or contract changes also need Sales Manager approval?</li>
+    <li>Should unconfirmed resolutions auto-close after a set period (e.g. 5 business days) if the requester doesn't respond?</li>
+    <li>Do response targets need to respect business hours, like ticket SLAs, rather than calendar hours?</li>
+    <li>Should the customer ever see "escalated to our engineering team" in the portal?</li>
+    <li>Who owns the PRD and success metrics: Head of Support or Product?</li>
+  </ol>
+
+  <div class="callout"><p><b>Note:</b> v1 of this flow is already built in Afrilinq CRM. This PRD documents its current behaviour as the baseline for review and future iterations. Requirements marked <i>Later</i> are not built yet.</p></div>
+
+  <footer>Afrilinq CRM · Ticket escalations PRD · Draft · October 2026</footer>
+</div>
+</body>
+</html>

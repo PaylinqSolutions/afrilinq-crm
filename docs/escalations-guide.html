@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ticket Escalation Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  :root {
+    --bg: #f6f7fb; --surface: #ffffff; --ink: #0f172a; --ink-2: #475569; --muted: #64748b;
+    --line: #e2e8f0; --brand: #0b2a6b; --brand-soft: #e8edf8; --accent: #e8590c;
+    --amber: #92400e; --amber-bg: #fef3c7; --green: #065f46; --green-bg: #d1fae5;
+    --blue: #1e40af; --blue-bg: #dbeafe; --violet: #5b21b6; --violet-bg: #ede9fe; --red: #991b1b; --red-bg: #fee2e2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1120; --surface: #111827; --ink: #e5e7eb; --ink-2: #cbd5e1; --muted: #94a3b8;
+      --line: #1f2937; --brand: #93b4ff; --brand-soft: #1b2745; --accent: #fb923c;
+      --amber: #fcd34d; --amber-bg: #3a2a07; --green: #6ee7b7; --green-bg: #06281f;
+      --blue: #93c5fd; --blue-bg: #0f2347; --violet: #c4b5fd; --violet-bg: #251a47; --red: #fca5a5; --red-bg: #3b0d0d; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+      --bg: #0b1120; --surface: #111827; --ink: #e5e7eb; --ink-2: #cbd5e1; --muted: #94a3b8;
+      --line: #1f2937; --brand: #93b4ff; --brand-soft: #1b2745; --accent: #fb923c;
+      --amber: #fcd34d; --amber-bg: #3a2a07; --green: #6ee7b7; --green-bg: #06281f;
+      --blue: #93c5fd; --blue-bg: #0f2347; --violet: #c4b5fd; --violet-bg: #251a47; --red: #fca5a5; --red-bg: #3b0d0d; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 880px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  header.top { border-bottom: 3px solid var(--brand); padding-bottom: 16px; margin-bottom: 24px; }
+  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: 30px; line-height: 1.2; margin: 6px 0 8px; color: var(--brand); }
+  h2 { font-size: 20px; margin: 36px 0 12px; color: var(--brand); }
+  h3 { font-size: 16px; margin: 20px 0 6px; }
+  p, li { color: var(--ink-2); }
+  .lede { font-size: 17px; color: var(--ink-2); margin: 0; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  ol.steps > li { counter-increment: s; position: relative; padding: 16px 16px 16px 60px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  ol.steps > li::before { content: counter(s); position: absolute; left: 16px; top: 14px; width: 30px; height: 30px; border-radius: 50%; background: var(--brand); color: var(--surface); font-weight: 700; display: grid; place-items: center; font-size: 14px; }
+  ol.steps strong { color: var(--ink); }
+  .ui { display: inline-block; padding: 0 6px; border-radius: 6px; background: var(--brand-soft); color: var(--brand); font-weight: 600; font-size: .92em; white-space: nowrap; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--brand-soft); color: var(--brand); font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { font-weight: 600; color: var(--ink); }
+  .scroll { overflow-x: auto; }
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 4px; }
+  .chip { padding: 6px 12px; border-radius: 999px; font-size: 14px; font-weight: 600; }
+  .arrow { color: var(--muted); }
+  .c-amber { background: var(--amber-bg); color: var(--amber); }
+  .c-blue { background: var(--blue-bg); color: var(--blue); }
+  .c-violet { background: var(--violet-bg); color: var(--violet); }
+  .c-green { background: var(--green-bg); color: var(--green); }
+  .c-gray { background: var(--brand-soft); color: var(--ink-2); }
+  .c-red { background: var(--red-bg); color: var(--red); }
+  .note { border-left: 4px solid var(--accent); background: var(--surface); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 16px 0; }
+  .note p { margin: 0; }
+  .grid2 { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .grid2 .card h3 { margin-top: 0; }
+  .sev { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .sev div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; text-align: center; }
+  .sev b { display: block; font-size: 20px; color: var(--brand); }
+  .sev span { font-size: 13px; color: var(--muted); }
+  footer { margin-top: 40px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+  @media (max-width: 560px) { .sev { grid-template-columns: repeat(2, 1fr); } h1 { font-size: 25px; } }
+  @media print {
+    body { background: #fff; } .wrap { padding: 0; max-width: none; }
+    .card, ol.steps > li, table { break-inside: avoid; }
+    @page { size: A4; margin: 16mm; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Afrilinq CRM · Support guide</div>
+    <h1>How to escalate a ticket</h1>
+    <p class="lede">Bring in Engineering, a colleague, Sales, Onboarding or management when a customer issue needs more than you can resolve alone, then follow it through until it is fixed and confirmed.</p>
+  </header>
+
+  <div class="note"><p>Escalations always start from a ticket. There is no stand-alone "new escalation" page, so every escalation stays tied to the customer's ticket, company and contact.</p></div>
+
+  <h2>Raise an escalation</h2>
+  <ol class="steps">
+    <li><strong>Open the ticket.</strong> Go to <span class="ui">Tickets</span> and open the customer's ticket. The ticket must still be open; closed or resolved tickets can't be escalated.</li>
+    <li><strong>Find the Escalations section.</strong> Scroll down the ticket page to <span class="ui">Escalations</span> and click <span class="ui">Escalate</span>.</li>
+    <li><strong>Choose who to escalate to.</strong> Pick a target in <span class="ui">Escalate to</span> (see the table below). Depending on your choice you'll pick an engineering team or a person.</li>
+    <li><strong>Set the severity.</strong> P1–P4 sets the response target for whoever receives it. It defaults to the ticket's priority.</li>
+    <li><strong>Say what you need.</strong> In <span class="ui">What do you need from them?</span> write the question, what you've already tried, and what the customer is waiting for.</li>
+    <li><strong>Submit.</strong> Click <span class="ui">Raise escalation</span>. The receiver is notified straight away, or a Support Lead is asked to approve it first.</li>
+  </ol>
+
+  <h2>Who can I escalate to?</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Escalate to</th><th>Use it for</th><th>You choose</th><th>Approval?</th></tr></thead>
+    <tbody>
+      <tr><td>Development / Engineering</td><td>Product bugs and anything needing a code or configuration change.</td><td>The engineering team, plus full technical detail (below).</td><td>Yes, when an agent raises it</td></tr>
+      <tr><td>Another support agent</td><td>A colleague with better knowledge of that product or customer.</td><td>The person</td><td>No</td></tr>
+      <tr><td>Support Lead</td><td>Guidance, priority calls or difficult customer handling.</td><td>A lead (optional: blank means any Support Lead)</td><td>No</td></tr>
+      <tr><td>Sales</td><td>Pricing, licences, contract scope, renewals.</td><td>A sales rep; the account owner is pre-selected and labelled</td><td>No</td></tr>
+      <tr><td>Onboarding / implementation</td><td>Setup, data migration or go-live issues for a customer still onboarding.</td><td>A person; the onboarding owner is pre-selected and labelled</td><td>No</td></tr>
+      <tr><td>Management</td><td>Serious customer risk, such as churn threats or major outages.</td><td>Nothing: all executives are notified</td><td>Yes, when an agent raises it</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Extra details for Engineering</h3>
+  <p>Engineering escalations need enough context to act without coming back to you. These fields are <strong>required</strong>:</p>
+  <div class="grid2">
+    <div class="card"><h3>Required</h3><p>Environment / version · Reproduction steps · Expected result · Actual result · Customer impact · Business consequence</p></div>
+    <div class="card"><h3>Optional</h3><p>Evidence (logs, IDs, screenshots) · Workaround</p></div>
+  </div>
+
+  <h2>Response targets</h2>
+  <p>The severity you choose sets how quickly the receiver should respond. The due time shows on the escalation and in the inbox.</p>
+  <div class="sev">
+    <div><b>P1</b><span>within 4 hours</span></div>
+    <div><b>P2</b><span>within 1 day</span></div>
+    <div><b>P3</b><span>within 3 days</span></div>
+    <div><b>P4</b><span>within 5 days</span></div>
+  </div>
+
+  <h2>What happens next</h2>
+  <div class="flow" aria-label="Escalation stages">
+    <span class="chip c-amber">Awaiting approval</span><span class="arrow">→</span>
+    <span class="chip c-blue">Waiting to be accepted</span><span class="arrow">→</span>
+    <span class="chip c-violet">In progress</span><span class="arrow">→</span>
+    <span class="chip c-green">Resolved — awaiting confirmation</span><span class="arrow">→</span>
+    <span class="chip c-gray">Resolved and confirmed</span>
+  </div>
+  <p style="font-size:14px;color:var(--muted)">Approval only applies to Engineering and Management escalations raised by agents. Other outcomes: <span class="chip c-red" style="font-size:12px;padding:2px 8px">Declined</span> and Withdrawn.</p>
+
+  <ol class="steps">
+    <li><strong>Approval (Engineering and Management only).</strong> A Support Lead clicks <span class="ui">Approve</span> or <span class="ui">Decline</span>. A decline needs a comment, which is sent back to you.</li>
+    <li><strong>Accept.</strong> The receiver gets a notification and clicks <span class="ui">Accept</span>. You and the ticket owner are told who picked it up.</li>
+    <li><strong>Work and updates.</strong> Either side can <span class="ui">Add update</span>. Updates are internal and never shown to the customer. Engineering can also record a status (investigating → identified → fix in progress → fix released / won't fix), root cause and fix version. "Fix released" or "won't fix" resolves the escalation automatically.</li>
+    <li><strong>Resolve.</strong> The receiver clicks <span class="ui">Mark resolved</span> and explains the fix. For Engineering, a ticket that was waiting on engineering moves back to In progress.</li>
+    <li><strong>Confirm.</strong> You (or the ticket owner) are notified. Check with the customer, then click <span class="ui">Confirm resolved</span>. If it isn't fixed, click <span class="ui">Reopen</span> and say what's still wrong. It goes back to the receiver.</li>
+  </ol>
+
+  <h2>Other actions</h2>
+  <div class="grid2">
+    <div class="card"><h3>Reassign</h3><p>The receiver can pass the escalation to another person with a note. The new owner is notified and must accept it.</p></div>
+    <div class="card"><h3>Withdraw</h3><p>If you no longer need help (say the customer found a fix), withdraw it with a reason. The receiver is notified.</p></div>
+    <div class="card"><h3>Decline</h3><p>A Support Lead can decline an escalation awaiting approval. A reason is required.</p></div>
+    <div class="card"><h3>Reopen</h3><p>Available after resolution if the problem returns. The reopen count is tracked.</p></div>
+  </div>
+
+  <h2>Keeping track: the Escalations inbox</h2>
+  <p>Open <span class="ui">Escalations</span> in the left menu. The badge shows how many need you.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Tab</th><th>Shows</th></tr></thead>
+    <tbody>
+      <tr><td>Assigned to me</td><td>Open escalations assigned to you personally.</td></tr>
+      <tr><td>My team</td><td>Open escalations assigned to your team (e.g. Engineering).</td></tr>
+      <tr><td>Raised by me</td><td>Active escalations you raised.</td></tr>
+      <tr><td>Awaiting my confirmation</td><td>Resolved escalations waiting for your confirmation.</td></tr>
+      <tr><td>Needs approval</td><td>Support Leads only: escalations waiting for approval.</td></tr>
+      <tr><td>All open</td><td>Support Leads only: every active escalation.</td></tr>
+      <tr><td>History</td><td>Confirmed, declined and withdrawn escalations.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Tips</h2>
+  <ul>
+    <li>Be specific in the reason. "Customer can't export invoices since Monday's update; tried clearing cache and a second browser" gets faster help than "export broken".</li>
+    <li>Keep the customer updated from the ticket's conversation. Escalation updates are internal only.</li>
+    <li>You can't escalate to yourself, and you can only pick active users.</li>
+    <li>People you escalate to can see the ticket even if it's normally outside their queue.</li>
+  </ul>
+
+  <footer>Afrilinq CRM · Support guide · Escalations · October 2026</footer>
+</div>
+</body>
+</html>

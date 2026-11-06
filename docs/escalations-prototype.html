@@ -1,0 +1,746 @@
+<meta charset="utf-8">
+<title>Afrilinq Escalations Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Layout: the CRM's own shell (top bar, side nav, work area) so it reads as the real product; prototype controls sit in the top bar. */
+  :root {
+    --bg: #f4f6fa; --surface: #ffffff; --raised: #f8f9fc; --ink: #0f1b2d; --ink-2: #3a4960; --muted: #67758b; --line: #dfe5ee;
+    --brand: #002366; --brand-text: #002366; --brand-soft: #eef2fa; --on-brand: #ffffff;
+    --accent: #006b6b; --accent-soft: #e6f4f4;
+    --red: #b42318; --red-soft: #fdecea; --amber: #93510b; --amber-soft: #fdf2df; --green: #0b6b46; --green-soft: #e3f5ec;
+    --blue: #1d4ea8; --blue-soft: #e7eefb; --violet: #5b3aa6; --violet-soft: #f0ebfb;
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0a111e; --surface: #111a2b; --raised: #0e1726; --ink: #e7ecf4; --ink-2: #c3cddb; --muted: #8f9cb1; --line: #22304a;
+      --brand: #3559b5; --brand-text: #9fb8ff; --brand-soft: #18264a; --on-brand: #ffffff;
+      --accent: #4fc4c4; --accent-soft: #0f2d33;
+      --red: #ff9b8f; --red-soft: #3a1714; --amber: #f5c26b; --amber-soft: #33240b; --green: #6fd8a8; --green-soft: #0c2b1f;
+      --blue: #9cbcff; --blue-soft: #15264a; --violet: #c6b2ff; --violet-soft: #251b45;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a111e; --surface: #111a2b; --raised: #0e1726; --ink: #e7ecf4; --ink-2: #c3cddb; --muted: #8f9cb1; --line: #22304a;
+    --brand: #3559b5; --brand-text: #9fb8ff; --brand-soft: #18264a; --on-brand: #ffffff;
+    --accent: #4fc4c4; --accent-soft: #0f2d33;
+    --red: #ff9b8f; --red-soft: #3a1714; --amber: #f5c26b; --amber-soft: #33240b; --green: #6fd8a8; --green-soft: #0c2b1f;
+    --blue: #9cbcff; --blue-soft: #15264a; --violet: #c6b2ff; --violet-soft: #251b45;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font); }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--brand-text); outline-offset: 2px; }
+  a { color: var(--brand-text); }
+
+  .topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line);
+    padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+  .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--brand-text); letter-spacing: -.01em; }
+  .logo-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--brand); color: var(--on-brand); display: grid; place-items: center; font-size: 13px; }
+  .proto-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); background: var(--accent-soft); padding: 2px 8px; border-radius: 999px; }
+  .spacer { flex: 1; }
+  .as { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .as select { min-width: 0; max-width: 260px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-weight: 600; }
+  .iconbtn { position: relative; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .iconbtn:hover { background: var(--raised); }
+  .count { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--red); color: var(--surface); font-size: 11px; font-weight: 700; display: inline-grid; place-items: center; }
+  .count.soft { background: var(--brand-soft); color: var(--brand-text); }
+
+  .shell { display: grid; grid-template-columns: 200px minmax(0, 1fr); min-height: 100%; }
+  nav.side { border-right: 1px solid var(--line); background: var(--surface); padding: 16px 10px; display: flex; flex-direction: column; gap: 2px; }
+  nav.side button { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 8px; color: var(--ink-2); font-weight: 500; }
+  nav.side button:hover { background: var(--raised); }
+  nav.side button[aria-current="page"] { background: var(--brand-soft); color: var(--brand-text); font-weight: 650; }
+  nav.side button:focus-visible { outline: 2px solid var(--brand-text); }
+  .side-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 12px 10px 4px; }
+  main { min-width: 0; padding-block: 20px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .page { max-width: 1040px; margin: 0 auto; display: grid; gap: 16px; }
+
+  .tour { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; }
+  .tour-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .tour-head b { font-size: 13px; }
+  .tour ol { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; }
+  .tour li { display: flex; gap: 8px; align-items: flex-start; padding: 8px; border-radius: 8px; background: var(--raised); font-size: 13px; color: var(--ink-2); }
+  .tour li .n { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--brand); color: var(--on-brand); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+  .tour li.done .n { background: var(--green); color: var(--surface); }
+  .tour li.here { box-shadow: inset 0 0 0 1.5px var(--brand-text); }
+  .linkbtn { all: unset; cursor: pointer; color: var(--brand-text); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+  .linkbtn:focus-visible { outline: 2px solid var(--brand-text); }
+
+  h1 { font-size: 21px; line-height: 1.25; margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+  h2 { font-size: 15px; margin: 0; }
+  .crumbs { font-size: 12px; color: var(--muted); }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .between { justify-content: space-between; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  .panel-head { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+  .panel-body { padding: 16px; display: grid; gap: 14px; }
+
+  .pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 650; white-space: nowrap; }
+  .t-red { background: var(--red-soft); color: var(--red); } .t-amber { background: var(--amber-soft); color: var(--amber); }
+  .t-green { background: var(--green-soft); color: var(--green); } .t-blue { background: var(--blue-soft); color: var(--blue); }
+  .t-violet { background: var(--violet-soft); color: var(--violet); } .t-gray { background: var(--raised); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line); }
+  .sev { font-family: var(--mono); font-size: 11.5px; }
+
+  .btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 6px 12px; font-weight: 600; font-size: 13px; cursor: pointer; }
+  .btn:hover { background: var(--raised); }
+  .btn.primary { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+  .btn.primary:hover { filter: brightness(1.12); }
+  .btn.danger { color: var(--red); border-color: var(--red); background: var(--surface); }
+  .btn.ghost { border-color: transparent; background: transparent; color: var(--brand-text); }
+
+  .ticket-head { display: grid; gap: 6px; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .fact { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .fact span { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .fact b { font-weight: 650; }
+  .fact span.pill { display: inline-flex; font-size: 12px; text-transform: none; letter-spacing: 0; }
+  .convo { display: grid; gap: 10px; }
+  .msg { padding: 10px 12px; border-radius: 10px; background: var(--raised); border: 1px solid var(--line); }
+  .msg.agent { background: var(--brand-soft); border-color: transparent; }
+  .msg .who { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+
+  .esc { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .esc.attn { border-color: var(--amber); }
+  .esc-top { padding: 12px 14px; display: grid; gap: 8px; }
+  .esc-title { font-weight: 650; }
+  .reason { margin: 0; color: var(--ink-2); white-space: pre-wrap; }
+  .steps { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; font-size: 12px; list-style: none; padding: 0; margin: 0; }
+  .steps li { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); }
+  .steps .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+  .steps li.done { color: var(--ink); } .steps li.done .dot { background: var(--green); }
+  .steps li.now { color: var(--ink); font-weight: 650; } .steps li.now .dot { background: var(--brand-text); box-shadow: 0 0 0 3px var(--brand-soft); }
+  .steps li.bad .dot { background: var(--red); } .steps li.bad { color: var(--red); }
+  .steps .sep { color: var(--line); }
+  details.tech { font-size: 13px; }
+  details.tech summary { cursor: pointer; color: var(--brand-text); font-weight: 600; }
+  dl.kv { display: grid; grid-template-columns: minmax(110px, max-content) minmax(0, 1fr); gap: 4px 12px; margin: 8px 0 0; }
+  dl.kv dt { color: var(--muted); } dl.kv dd { margin: 0; white-space: pre-wrap; }
+  .resolution { background: var(--green-soft); color: var(--ink); border-radius: 8px; padding: 8px 10px; }
+  .resolution b { color: var(--green); }
+  .eng { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
+  .updates { border-top: 1px solid var(--line); background: var(--raised); padding: 10px 14px; display: grid; gap: 8px; }
+  .upd { font-size: 13px; }
+  .upd .meta { color: var(--muted); font-size: 12px; }
+  .actions { border-top: 1px solid var(--line); padding: 10px 14px; display: grid; gap: 10px; }
+  .actions .row { gap: 6px; }
+  .nothing { font-size: 12px; color: var(--muted); }
+
+  form.f { display: grid; gap: 10px; background: var(--raised); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .field { display: grid; gap: 4px; min-width: 0; }
+  .field label { font-size: 12px; font-weight: 650; color: var(--ink-2); }
+  .field label .req { color: var(--red); }
+  .field input, .field select, .field textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field .hint { font-size: 12px; color: var(--muted); }
+  .field .err { font-size: 12px; color: var(--red); font-weight: 600; }
+  .field.bad input, .field.bad select, .field.bad textarea { border-color: var(--red); }
+  .formerr { color: var(--red); font-weight: 600; font-size: 13px; }
+  .target-hint { font-size: 12px; color: var(--ink-2); background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; padding: 6px 10px; }
+
+  .tabs { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--line); }
+  .tabs button { all: unset; cursor: pointer; padding: 8px 12px; border-bottom: 2px solid transparent; color: var(--ink-2); font-weight: 550; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; }
+  .tabs button[aria-selected="true"] { color: var(--brand-text); border-bottom-color: var(--brand-text); font-weight: 650; }
+  .tabs button:focus-visible { outline: 2px solid var(--brand-text); }
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 650; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--raised); }
+  tr.overdue td { background: var(--red-soft); }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .od { color: var(--red); font-weight: 650; }
+  .empty { padding: 28px 16px; text-align: center; color: var(--muted); }
+  code { font-family: var(--mono); font-size: 12px; background: var(--brand-soft); color: var(--brand-text); padding: 1px 5px; border-radius: 4px; }
+
+  .drawer { position: fixed; top: calc(56px + env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); width: min(380px, calc(100vw - 24px)); max-height: 70vh; overflow: auto; z-index: 30;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 32px rgba(10, 20, 40, .18); }
+  .drawer .item { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: 2px; width: 100%; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .drawer .item:hover { background: var(--raised); }
+  .drawer .item.unread { box-shadow: inset 3px 0 0 var(--brand-text); }
+  .drawer .item .t { font-weight: 600; }
+  .toast { position: fixed; bottom: max(16px, env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); z-index: 40; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-weight: 600; max-width: calc(100vw - 32px); box-shadow: 0 8px 24px rgba(10, 20, 40, .25); }
+
+  @media (max-width: 760px) {
+    .shell { grid-template-columns: minmax(0, 1fr); }
+    nav.side { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); padding-block: 8px;
+      padding-left: max(10px, env(safe-area-inset-left, 0px)); padding-right: max(10px, env(safe-area-inset-right, 0px)); }
+    nav.side button { white-space: nowrap; }
+    .side-label { display: none; }
+    .as select { max-width: 200px; }
+  }
+  @media (prefers-reduced-motion: no-preference) { .toast { animation: rise .2s ease-out; } @keyframes rise { from { transform: translate(-50%, 8px); opacity: 0; } } }
+</style>
+
+<header class="topbar">
+  <div class="logo"><span class="logo-mark" aria-hidden="true">A</span>Afrilinq CRM <span class="proto-tag">Prototype · sample data</span></div>
+  <div class="spacer"></div>
+  <label class="as" for="as-user">Viewing as <select id="as-user"></select></label>
+  <button class="iconbtn" id="bell" aria-haspopup="true" aria-expanded="false">Notifications <span id="bell-count"></span></button>
+  <button class="btn ghost" id="reset">Reset demo</button>
+</header>
+<div class="shell">
+  <nav class="side" aria-label="Main">
+    <div class="side-label">Support</div>
+    <button data-nav="tickets">Tickets</button>
+    <button data-nav="inbox">Escalations <span id="nav-badge"></span></button>
+    <div class="side-label">For developers</div>
+    <button data-nav="log">Event log</button>
+  </nav>
+  <main id="main"></main>
+</div>
+<div id="drawer" class="drawer" hidden></div>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+(() => {
+  const HOUR = 3600000;
+  const RESPONSE_HOURS = { P1: 4, P2: 24, P3: 72, P4: 120 };
+  const RESPONSE_LABEL = { P1: "4 hours", P2: "1 day", P3: "3 days", P4: "5 days" };
+  const PEOPLE = {
+    u1: { name: "Ada Eze", role: "agent", title: "Support agent", team: "support" },
+    u2: { name: "Femi Adeyemi", role: "agent", title: "Support agent", team: "support" },
+    u3: { name: "Tunde Bakare", role: "lead", title: "Support Lead", team: "support" },
+    u4: { name: "Chidi Okonkwo", role: "engineer", title: "Engineer · Platform", team: "platform" },
+    u5: { name: "Ngozi Obi", role: "engineer", title: "Engineer · Payments", team: "payments" },
+    u6: { name: "Kemi Lawal", role: "sales", title: "Sales · account owner", team: "sales" },
+    u7: { name: "Bola Akin", role: "onboarding", title: "Onboarding manager", team: "onboarding" },
+    u8: { name: "Grace Okafor", role: "exec", title: "Executive", team: "management" },
+  };
+  const TEAMS = { platform: "Platform Engineering", payments: "Payments Engineering" };
+  const TARGETS = [
+    { key: "engineering", label: "Development / Engineering team", target: "team", approval: true, hint: "Product defects and anything needing a code or config change. Needs full technical detail; agents' requests wait for Support Lead approval." },
+    { key: "support_peer", label: "Another support agent", target: "person", approval: false, hint: "Hand a specific question to a colleague with the right product knowledge." },
+    { key: "support_lead", label: "Support Lead", target: "person", approval: false, hint: "Guidance, priority calls, or customer handling. Leave the person blank to send it to any Support Lead." },
+    { key: "sales", label: "Sales (account owner or a sales rep)", target: "person", approval: false, hint: "Commercial questions: pricing, licences, contract scope, renewals." },
+    { key: "onboarding", label: "Onboarding / implementation", target: "person", approval: false, hint: "Setup, migration or go-live issues for a customer still being onboarded." },
+    { key: "management", label: "Management", target: "role", approval: true, hint: "Critical customer risk. All executives are notified. Agents' requests wait for Support Lead approval." },
+  ];
+  const STATUS = {
+    pending_approval: ["Awaiting approval", "t-amber"], open: ["Waiting to be accepted", "t-blue"], in_progress: ["In progress", "t-violet"],
+    resolved: ["Resolved, awaiting confirmation", "t-green"], closed: ["Resolved and confirmed", "t-gray"], rejected: ["Declined", "t-red"], cancelled: ["Withdrawn", "t-gray"],
+  };
+  const SEV_TONE = { P1: "t-red", P2: "t-amber", P3: "t-blue", P4: "t-gray" };
+  const ENG_STATUS = { investigating: "Investigating", identified: "Identified", fix_in_progress: "Fix in progress", fix_released: "Fix released", wont_fix: "Won't fix" };
+  const ACTIVE = ["open", "in_progress"];
+  const KEY = "afrilinq-escalations-prototype-v1";
+
+  const target = (k) => TARGETS.find((t) => t.key === k);
+  const P = (id) => PEOPLE[id] || { name: "Unknown" };
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function seed() {
+    const now = Date.now(), ago = (h) => now - h * HOUR;
+    return {
+      me: "u1", view: { name: "ticket", id: "t1042" }, tab: "mine", openForm: null, tourHidden: false, seq: 100,
+      tickets: [
+        { id: "t1042", number: "TCK-1042", subject: "Invoice export fails after Monday's update", company: "Ikeja Fresh Foods", contact: "Shade Balogun", priority: "P2", status: "In progress", owner: "u1", level: 1, createdAt: ago(20),
+          messages: [{ from: "Shade Balogun (customer)", at: ago(20), body: "Since Monday, exporting invoices to Excel gives an error: \"Export failed, try again later\". We need October's invoices for our auditors by Friday." },
+                     { from: "Ada Eze", agent: true, at: ago(18), body: "Thanks Shade. I can reproduce this on your account. Exports of more than 500 invoices fail; smaller date ranges still work as a workaround. I'm checking with our product team." }] },
+        { id: "t1038", number: "TCK-1038", subject: "October payroll run stuck at \"Processing\"", company: "Lekki Pharma Ltd", contact: "Musa Danladi", priority: "P1", status: "Waiting on engineering", owner: "u2", level: 2, createdAt: ago(6),
+          messages: [{ from: "Musa Danladi (customer)", at: ago(6), body: "Our payroll run has shown \"Processing\" for two hours. Staff are due to be paid today." }] },
+        { id: "t1035", number: "TCK-1035", subject: "Licence count shows 25 seats after renewal to 40", company: "Abuja Civic Water Board", contact: "Halima Yusuf", priority: "P3", status: "In progress", owner: "u1", level: 2, createdAt: ago(60),
+          messages: [{ from: "Halima Yusuf (customer)", at: ago(60), body: "We renewed for 40 users last week but the system only lets us add 25." }] },
+        { id: "t1040", number: "TCK-1040", subject: "Customer list missing after data migration", company: "Calabar Marine Services", contact: "Efe Okon", priority: "P2", status: "In progress", owner: "u2", level: 2, createdAt: ago(32),
+          messages: [{ from: "Efe Okon (customer)", at: ago(32), body: "About 300 customers from our old system are not in the CRM after the migration." }] },
+        { id: "t1041", number: "TCK-1041", subject: "Stock valuation report totals don't match the ledger", company: "Enugu Coal City Pharma", contact: "Obinna Eze", priority: "P2", status: "In progress", owner: "u2", level: 2, createdAt: ago(3),
+          messages: [{ from: "Obinna Eze (customer)", at: ago(3), body: "The stock valuation report is ₦1.2M higher than the ledger for September." }] },
+      ],
+      escs: [
+        { id: "e1", ticketId: "t1038", kind: "engineering", severity: "P1", status: "in_progress", createdBy: "u2", createdAt: ago(5), dueAt: ago(1), approvedBy: "u3",
+          requestedTeam: "payments", assignedTeam: "payments", assignedTo: "u5", acceptedAt: ago(4.5), acceptedBy: "u5", reopenCount: 0,
+          reason: "Payroll run for 1,240 employees stuck at Processing for 2 hours. Customer must pay staff today.",
+          details: { environment: "Production · v4.18.2", reproductionSteps: "1. Payroll → October 2026\n2. Run payroll for all employees\n3. Status stays at Processing", expectedResult: "Run completes in under 10 minutes", actualResult: "Stuck at Processing for 2h+", customerImpact: "1,240 staff unpaid today", businessConsequence: "Statutory late-payment risk; customer threatening to escalate to their MD", evidence: "Run ID PR-2026-10-8841", workaround: "" },
+          engStatus: "identified", rootCause: "Batch worker times out after 15 minutes on runs above 1,000 employees", fixVersion: "" },
+        { id: "e2", ticketId: "t1035", kind: "sales", severity: "P3", status: "resolved", createdBy: "u1", createdAt: ago(50), dueAt: ago(-22), assignedTo: "u6",
+          acceptedAt: ago(40), acceptedBy: "u6", resolvedAt: ago(3), resolvedBy: "u6", reopenCount: 0,
+          reason: "Customer renewed for 40 seats but the account shows 25. Can you check the renewal order?",
+          resolution: "The renewal order was entered as 25 seats by mistake. I've corrected it to 40 with Finance. The customer will see 40 seats after tonight's sync." },
+        { id: "e3", ticketId: "t1040", kind: "onboarding", severity: "P2", status: "open", createdBy: "u2", createdAt: ago(30), dueAt: ago(6), assignedTo: "u7", reopenCount: 0,
+          reason: "Around 300 customer records didn't come across in the migration. Customer goes live next Monday. Can you check the import file and re-run?" },
+        { id: "e4", ticketId: "t1041", kind: "engineering", severity: "P2", status: "pending_approval", createdBy: "u2", createdAt: ago(1.5), dueAt: ago(-22.5), requestedTeam: "platform", reopenCount: 0,
+          reason: "Stock valuation report is ₦1.2M above the ledger for September. Looks like returned items are counted twice.",
+          details: { environment: "Production · v4.18.2", reproductionSteps: "1. Reports → Stock valuation\n2. Period: September 2026\n3. Compare with ledger account 1400", expectedResult: "Totals match the ledger", actualResult: "Report is ₦1.2M higher", customerImpact: "Month-end close blocked", businessConsequence: "Auditors waiting; renewal in December", evidence: "Export attached on ticket", workaround: "Manual adjustment in Excel" } },
+      ],
+      updates: [
+        { id: "x1", escId: "e1", by: "u5", at: ago(4.4), body: "Picked up. Reproduced with a 1,200-employee payroll in staging." },
+        { id: "x2", escId: "e1", by: "u5", at: ago(2), body: "Root cause found. Batch worker times out after 15 minutes. Fix is in review; I'll restart this customer's run manually in 30 minutes.", engStatus: "identified" },
+        { id: "x3", escId: "e2", by: "u6", at: ago(40), body: "Checking the renewal order with Finance." },
+      ],
+      notes: [
+        { id: "n1", to: "u3", at: ago(1.5), ticketId: "t1041", text: "Escalation needs approval: TCK-1041", read: false },
+        { id: "n2", to: "u1", at: ago(3), ticketId: "t1035", text: "Escalation resolved on TCK-1035. Please confirm.", read: false },
+        { id: "n3", to: "u7", at: ago(30), ticketId: "t1040", text: "New escalation for you: TCK-1040 Customer list missing after data migration", read: false },
+        { id: "n4", to: "u2", at: ago(4.5), ticketId: "t1038", text: "Ngozi Obi accepted the escalation on TCK-1038", read: true },
+      ],
+      log: [
+        { at: ago(30), actor: "u2", ticketId: "t1040", action: "Raised escalation → Onboarding", from: null, to: "open", notified: ["u7"] },
+        { at: ago(5), actor: "u2", ticketId: "t1038", action: "Raised escalation → Payments Engineering", from: null, to: "pending_approval", notified: ["u3"] },
+        { at: ago(4.8), actor: "u3", ticketId: "t1038", action: "Approved", from: "pending_approval", to: "open", notified: ["u5"] },
+        { at: ago(4.5), actor: "u5", ticketId: "t1038", action: "Accepted", from: "open", to: "in_progress", notified: ["u2"] },
+        { at: ago(3), actor: "u6", ticketId: "t1035", action: "Resolved", from: "in_progress", to: "resolved", notified: ["u1"] },
+        { at: ago(1.5), actor: "u2", ticketId: "t1041", action: "Raised escalation → Platform Engineering", from: null, to: "pending_approval", notified: ["u3"] },
+      ],
+    };
+  }
+
+  let S;
+  try { S = JSON.parse(localStorage.getItem(KEY)); } catch { S = null; }
+  if (!S || !S.escs) S = seed();
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
+
+  // ---- rules (mirror src/server/services/tickets.ts) ----
+  const me = () => S.me;
+  const role = (u) => P(u).role;
+  const isLead = (u) => role(u) === "lead";
+  const canEscalate = (u) => ["agent", "lead"].includes(role(u));
+  const ticket = (id) => S.tickets.find((t) => t.id === id);
+  const isReceiver = (u, e) => isLead(u) || e.assignedTo === u || (!!e.assignedTeam && e.assignedTeam === P(u).team) || (e.kind === "management" && role(u) === "exec");
+  const isRequester = (u, e, t) => isLead(u) || e.createdBy === u || t.owner === u;
+  function perms(u, e) {
+    const t = ticket(e.ticketId), recv = isReceiver(u, e), req = isRequester(u, e, t), active = ACTIVE.includes(e.status);
+    return {
+      approve: e.status === "pending_approval" && isLead(u),
+      accept: recv && e.status === "open",
+      resolve: recv && active,
+      reassign: recv && (active || e.status === "pending_approval"),
+      update: (recv || req || role(u) === "engineer") && !["closed", "rejected", "cancelled"].includes(e.status),
+      engineering: e.kind === "engineering" && role(u) === "engineer" && active,
+      confirm: req && e.status === "resolved",
+      reopen: req && ["resolved", "closed"].includes(e.status),
+      cancel: req && ["pending_approval", "open", "in_progress"].includes(e.status),
+    };
+  }
+  const receivers = (e) => {
+    if (e.kind === "management") return ids((u) => role(u) === "exec");
+    if (e.assignedTo) return [e.assignedTo];
+    if (e.assignedTeam) return ids((u) => P(u).team === e.assignedTeam);
+    if (e.kind === "support_lead") return ids(isLead);
+    return [];
+  };
+  const ids = (fn) => Object.keys(PEOPLE).filter(fn);
+  const receiverLabel = (e) => e.kind === "management" ? "All executives" : e.assignedTo ? P(e.assignedTo).name + (e.assignedTeam ? ` · ${TEAMS[e.assignedTeam]}` : "") : e.assignedTeam ? TEAMS[e.assignedTeam] : e.requestedTeam ? `${TEAMS[e.requestedTeam]} (after approval)` : e.kind === "support_lead" ? "Any Support Lead" : "Unassigned";
+  const isOverdue = (e) => !!e.dueAt && !e.acceptedAt && ["open", "pending_approval"].includes(e.status) && e.dueAt < Date.now();
+
+  class Invalid extends Error { constructor(msg, fields) { super(msg); this.fields = fields || {}; } }
+
+  function notify(userIds, ticketId, text) {
+    const actor = me();
+    [...new Set(userIds)].filter((u) => u && u !== actor).forEach((u) => S.notes.unshift({ id: "n" + ++S.seq, to: u, at: Date.now(), ticketId, text, read: false }));
+    return [...new Set(userIds)].filter((u) => u && u !== actor);
+  }
+  function record(e, action, from, notified) { S.log.push({ at: Date.now(), actor: me(), ticketId: e.ticketId, action, from, to: e.status, notified }); }
+
+  const A = {
+    raise(ticketId, v) {
+      const u = me(), t = ticket(ticketId), tg = target(v.kind), errs = {};
+      if (!tg) errs.kind = "Choose who to escalate to.";
+      if (!v.reason.trim()) errs.reason = "Explain what you need from them.";
+      let assignedTo = v.assignedTo || null;
+      if (v.kind === "engineering") {
+        if (!v.requestedTeam) errs.requestedTeam = "Choose the engineering team.";
+        for (const [k, l] of [["environment", "Environment"], ["reproductionSteps", "Reproduction steps"], ["expectedResult", "Expected result"], ["actualResult", "Actual result"], ["customerImpact", "Customer impact"], ["businessConsequence", "Business consequence"]])
+          if (!v[k].trim()) errs[k] = `${l} is required for an engineering escalation.`;
+        assignedTo = null;
+      }
+      if (tg && tg.target === "person" && v.kind !== "support_lead" && !assignedTo) errs.assignedTo = "Pick a person.";
+      if (assignedTo === u) errs.assignedTo = "You can't escalate to yourself.";
+      if (Object.keys(errs).length) throw new Invalid(v.kind === "engineering" && Object.keys(errs).length > 1 ? "Engineering escalations need full technical context." : "Fix the highlighted fields.", errs);
+      const needsApproval = tg.approval && !isLead(u), now = Date.now();
+      const e = { id: "e" + ++S.seq, ticketId, kind: v.kind, severity: v.severity, status: needsApproval ? "pending_approval" : "open", createdBy: u, createdAt: now,
+        dueAt: now + RESPONSE_HOURS[v.severity] * HOUR, requestedTeam: v.requestedTeam || null, assignedTeam: needsApproval ? null : v.requestedTeam || null, assignedTo,
+        approvedBy: needsApproval ? null : u, reason: v.reason.trim(), reopenCount: 0,
+        details: v.kind === "engineering" ? { environment: v.environment, reproductionSteps: v.reproductionSteps, expectedResult: v.expectedResult, actualResult: v.actualResult, customerImpact: v.customerImpact, businessConsequence: v.businessConsequence, evidence: v.evidence, workaround: v.workaround } : null };
+      S.escs.push(e);
+      t.level = Math.max(t.level, v.kind === "management" ? 3 : 2);
+      let notified;
+      if (needsApproval) notified = notify(ids(isLead), ticketId, `Escalation needs approval: ${t.number}`);
+      else notified = delivered(e, t);
+      record(e, `Raised escalation → ${e.kind === "engineering" ? TEAMS[e.requestedTeam] : tg.label}`, null, notified);
+      return needsApproval ? "Escalation raised. A Support Lead needs to approve it." : `Escalation sent to ${receiverLabel(e)}.`;
+    },
+    approve(e, v) {
+      const t = ticket(e.ticketId), from = e.status;
+      e.status = "open"; e.approvedBy = me(); e.assignedTeam = e.requestedTeam || null;
+      const notified = delivered(e, t);
+      record(e, "Approved" + (v.comment ? ` (“${v.comment}”)` : ""), from, notified);
+      return "Approved and sent on.";
+    },
+    decline(e, v) {
+      if (!v.comment.trim()) throw new Invalid("Say why you're declining it.", { comment: "A reason is required to decline." });
+      const t = ticket(e.ticketId), from = e.status; e.status = "rejected"; e.declineReason = v.comment.trim();
+      record(e, "Declined", from, notify([e.createdBy], t.id, `Escalation declined on ${t.number}: ${v.comment.trim()}`));
+      return "Escalation declined.";
+    },
+    accept(e) {
+      const t = ticket(e.ticketId), from = e.status;
+      e.status = "in_progress"; e.acceptedAt = Date.now(); e.acceptedBy = me(); e.assignedTo = e.assignedTo || me();
+      record(e, "Accepted", from, notify([e.createdBy, t.owner], t.id, `${P(me()).name} accepted the escalation on ${t.number}`));
+      return "Accepted. It's now yours.";
+    },
+    update(e, v) {
+      if (!v.body.trim()) throw new Invalid("Write the update first.", { body: "Required." });
+      const u = me(), t = ticket(e.ticketId), from = e.status, recv = isReceiver(u, e), pm = perms(u, e);
+      S.updates.push({ id: "x" + ++S.seq, escId: e.id, by: u, at: Date.now(), body: v.body.trim(), engStatus: pm.engineering ? v.engStatus : undefined });
+      if (pm.engineering) { e.engStatus = v.engStatus; e.rootCause = v.rootCause.trim(); e.fixVersion = v.fixVersion.trim(); }
+      if (recv && e.status === "open") { e.status = "in_progress"; e.acceptedAt = e.acceptedAt || Date.now(); e.acceptedBy = e.acceptedBy || u; e.assignedTo = e.assignedTo || u; }
+      const others = recv ? [e.createdBy, t.owner] : receivers(e);
+      const notified = notify(others, t.id, `Update on the ${target(e.kind)?.label.toLowerCase() ?? "escalation"} for ${t.number}`);
+      if (pm.engineering && ["fix_released", "wont_fix"].includes(v.engStatus)) {
+        finishResolve(e, t, v.engStatus === "fix_released" ? `Fix released${e.fixVersion ? ` in ${e.fixVersion}` : ""}. ${v.body.trim()}` : `Won't fix. ${v.body.trim()}`);
+        record(e, `Engineering update: ${ENG_STATUS[v.engStatus]} (resolves automatically)`, from, notified);
+        return "Update posted and the escalation is resolved.";
+      }
+      record(e, pm.engineering ? `Engineering update: ${ENG_STATUS[v.engStatus]}` : "Update posted", from, notified);
+      return "Update posted.";
+    },
+    reassign(e, v) {
+      if (!v.to) throw new Invalid("Choose who to pass it to.", { to: "Pick a person." });
+      if (v.to === me()) throw new Invalid("Pick someone else.", { to: "That's you." });
+      const t = ticket(e.ticketId), from = e.status;
+      e.assignedTo = v.to; if (e.status !== "pending_approval") e.status = "open"; e.acceptedAt = null; e.acceptedBy = null;
+      record(e, `Reassigned to ${P(v.to).name}`, from, notify([v.to], t.id, `${P(me()).name} passed you an escalation: ${t.number} ${t.subject}${v.note ? `. “${v.note}”` : ""}`));
+      return `Passed to ${P(v.to).name}. They need to accept it.`;
+    },
+    resolve(e, v) {
+      if (!v.resolution.trim()) throw new Invalid("Explain how it was resolved.", { resolution: "The requester reads this before confirming with the customer." });
+      const t = ticket(e.ticketId), from = e.status;
+      const notified = finishResolve(e, t, v.resolution.trim());
+      record(e, "Resolved", from, notified);
+      return "Marked resolved. The requester has been asked to confirm.";
+    },
+    confirm(e) {
+      const t = ticket(e.ticketId), from = e.status;
+      e.status = "closed"; e.confirmedAt = Date.now(); e.confirmedBy = me();
+      record(e, "Confirmed resolved", from, notify([e.resolvedBy, e.assignedTo], t.id, `Escalation on ${t.number} confirmed resolved`));
+      return "Confirmed. The escalation is closed.";
+    },
+    reopen(e, v) {
+      if (!v.reason.trim()) throw new Invalid("Say what's still not right.", { reason: "Required." });
+      const t = ticket(e.ticketId), from = e.status, prev = e.resolvedBy;
+      e.status = "in_progress"; e.resolvedAt = null; e.resolvedBy = null; e.resolution = null; e.confirmedAt = null; e.reopenCount++;
+      if (e.kind === "engineering") t.status = "Waiting on engineering";
+      S.updates.push({ id: "x" + ++S.seq, escId: e.id, by: me(), at: Date.now(), body: `Reopened: ${v.reason.trim()}` });
+      record(e, `Reopened (${e.reopenCount}×)`, from, notify([...receivers(e), prev], t.id, `Escalation reopened on ${t.number}: ${v.reason.trim()}`));
+      return "Reopened and sent back.";
+    },
+    withdraw(e, v) {
+      if (!v.reason.trim()) throw new Invalid("Say why you're withdrawing it.", { reason: "Required." });
+      const t = ticket(e.ticketId), from = e.status; e.status = "cancelled"; e.cancelReason = v.reason.trim();
+      record(e, "Withdrawn", from, notify(receivers(e), t.id, `Escalation withdrawn on ${t.number}: ${v.reason.trim()}`));
+      return "Escalation withdrawn.";
+    },
+  };
+  function delivered(e, t) {
+    if (e.kind === "engineering") t.status = "Waiting on engineering";
+    const title = `New escalation for you: ${t.number} ${t.subject}`;
+    return notify(receivers(e), t.id, title);
+  }
+  function finishResolve(e, t, text) {
+    e.status = "resolved"; e.resolvedAt = Date.now(); e.resolvedBy = me(); e.resolution = text;
+    e.acceptedAt = e.acceptedAt || Date.now(); e.acceptedBy = e.acceptedBy || me();
+    if (e.kind === "engineering" && t.status === "Waiting on engineering") t.status = "In progress";
+    return notify([e.createdBy, t.owner], t.id, `Escalation resolved on ${t.number}. Please confirm.`);
+  }
+
+  // ---- inbox (mirrors listEscalations) ----
+  const VIEWS = [
+    { key: "mine", label: "Assigned to me", empty: "Nothing is escalated to you right now.", fn: (e, u) => e.assignedTo === u && ACTIVE.includes(e.status) },
+    { key: "team", label: "My team", empty: "Nothing is waiting on your team.", fn: (e, u) => !!e.assignedTeam && e.assignedTeam === P(u).team && ACTIVE.includes(e.status) },
+    { key: "raised", label: "Raised by me", empty: "You have no open escalations.", fn: (e, u) => e.createdBy === u && ["pending_approval", "open", "in_progress", "resolved"].includes(e.status) },
+    { key: "confirm", label: "Awaiting my confirmation", empty: "No resolved escalations are waiting for you to confirm.", fn: (e, u) => e.status === "resolved" && (isLead(u) || e.createdBy === u || ticket(e.ticketId).owner === u) },
+    { key: "approval", label: "Needs approval", lead: true, empty: "No escalations are waiting for approval.", fn: (e) => e.status === "pending_approval" },
+    { key: "all", label: "All open", lead: true, empty: "No open escalations.", fn: (e) => ["pending_approval", "open", "in_progress", "resolved"].includes(e.status) },
+    { key: "closed", label: "History", empty: "No closed escalations yet.", fn: (e, u) => ["closed", "rejected", "cancelled"].includes(e.status) && (isLead(u) || e.createdBy === u || e.assignedTo === u) },
+  ];
+  const views = () => VIEWS.filter((v) => !v.lead || isLead(me()));
+  const listFor = (key) => S.escs.filter((e) => VIEWS.find((v) => v.key === key).fn(e, me())).sort((a, b) => b.createdAt - a.createdAt);
+  const execMine = () => role(me()) === "exec" ? S.escs.filter((e) => e.kind === "management" && ACTIVE.includes(e.status)).length : 0;
+  const myCount = () => listFor("mine").length + listFor("team").length + listFor("confirm").length + (isLead(me()) ? listFor("approval").length : 0) + execMine();
+
+  // ---- formatting ----
+  function rel(ms) {
+    const d = Date.now() - ms, a = Math.abs(d), m = Math.round(a / 60000), h = Math.round(a / HOUR), dd = Math.round(a / (24 * HOUR));
+    const s = m < 1 ? "just now" : m < 60 ? `${m} min` : h < 48 ? `${h}h` : `${dd} days`;
+    return m < 1 ? s : d >= 0 ? `${s} ago` : `in ${s}`;
+  }
+  const pill = (st) => `<span class="pill ${STATUS[st][1]}">${STATUS[st][0]}</span>`;
+  const sev = (s) => `<span class="pill sev ${SEV_TONE[s]}">${s}</span>`;
+  function dueText(e) {
+    if (["closed", "rejected", "cancelled"].includes(e.status)) return e.resolvedAt ? `Resolved ${rel(e.resolvedAt)}` : `Raised ${rel(e.createdAt)}`;
+    if (e.status === "resolved") return `Resolved ${rel(e.resolvedAt)}`;
+    if (e.acceptedAt) return `Accepted ${rel(e.acceptedAt)}`;
+    if (isOverdue(e)) return `<span class="od">Overdue, response was due ${rel(e.dueAt)}</span>`;
+    return `Accept by ${rel(e.dueAt).replace(/^in /, "in ")}`;
+  }
+
+  // ---- rendering ----
+  const $ = (s) => document.querySelector(s);
+  function render() {
+    save();
+    $("#as-user").innerHTML = Object.entries(PEOPLE).map(([id, p]) => `<option value="${id}" ${id === me() ? "selected" : ""}>${esc(p.name)} · ${esc(p.title)}</option>`).join("");
+    const unread = S.notes.filter((n) => n.to === me() && !n.read).length;
+    $("#bell-count").innerHTML = unread ? `<span class="count">${unread}</span>` : "";
+    const c = myCount();
+    $("#nav-badge").innerHTML = c ? `<span class="count">${c}</span>` : "";
+    document.querySelectorAll("[data-nav]").forEach((b) => b.setAttribute("aria-current", (S.view.name === b.dataset.nav || (S.view.name === "ticket" && b.dataset.nav === "tickets")) ? "page" : "false"));
+    const main = $("#main");
+    main.innerHTML = `<div class="page">${tour()}${S.view.name === "ticket" ? ticketPage(ticket(S.view.id)) : S.view.name === "inbox" ? inboxPage() : S.view.name === "log" ? logPage() : ticketsPage()}</div>`;
+    if (!$("#drawer").hidden) drawer();
+  }
+
+  function tourSteps() {
+    const t = S.escs.filter((e) => e.ticketId === "t1042");
+    const latest = t[t.length - 1];
+    return [
+      { who: "u1", text: "As Ada, open TCK-1042 and escalate it to the Platform Engineering team.", done: !!latest },
+      { who: "u3", text: "As Tunde (Support Lead), approve it from Escalations → Needs approval.", done: !!latest && !["pending_approval"].includes(latest.status) },
+      { who: "u4", text: "As Chidi (engineer), accept it, post an update, then mark it resolved.", done: !!latest && ["resolved", "closed"].includes(latest.status) },
+      { who: "u1", text: "As Ada, confirm it's resolved, or reopen it.", done: !!latest && latest.status === "closed" },
+    ];
+  }
+  function tour() {
+    if (S.tourHidden) return "";
+    const steps = tourSteps(), next = steps.findIndex((s) => !s.done);
+    return `<section class="tour" aria-label="Try the flow">
+      <div class="tour-head"><b>Try the flow: switch people with “Viewing as” to play each role</b><button class="linkbtn small" data-act="hide-tour">Hide</button></div>
+      <ol>${steps.map((s, i) => `<li class="${s.done ? "done" : ""} ${i === next ? "here" : ""}"><span class="n">${s.done ? "✓" : i + 1}</span><span>${esc(s.text)}${i === next && me() !== s.who ? `<br><button class="linkbtn" data-act="switch" data-user="${s.who}">Switch to ${esc(P(s.who).name)}</button>` : ""}${i === next && i === 0 && S.view.id !== "t1042" ? `<br><button class="linkbtn" data-act="open-ticket" data-id="t1042">Open TCK-1042</button>` : ""}${i === next && i === 1 && me() === "u3" && S.view.name !== "inbox" ? `<br><button class="linkbtn" data-act="go-tab" data-tab="approval">Open Needs approval</button>` : ""}</span></li>`).join("")}</ol>
+      ${next === -1 ? `<p class="small muted" style="margin:0">Flow complete. Try the other paths: decline, reassign, withdraw, reopen, or escalate to Sales and Management. “Reset demo” starts over.</p>` : ""}
+    </section>`;
+  }
+
+  function ticketsPage() {
+    const rows = S.tickets.map((t) => {
+      const open = S.escs.filter((e) => e.ticketId === t.id && ["pending_approval", "open", "in_progress", "resolved"].includes(e.status)).length;
+      return `<tr data-act="open-ticket" data-id="${t.id}" tabindex="0"><td class="num"><b>${t.number}</b></td><td>${esc(t.subject)}<div class="small muted">${esc(t.company)}</div></td><td>${sev(t.priority)}</td><td>${esc(t.status)}</td><td>${esc(P(t.owner).name)}</td><td>${open ? `<span class="pill t-violet">${open} active</span>` : `<span class="muted">None</span>`}</td></tr>`;
+    }).join("");
+    return `<div class="row between"><div><div class="crumbs">Support</div><h1>Tickets</h1></div></div>
+      <section class="panel"><div class="tablewrap"><table><thead><tr><th>Ticket</th><th>Subject</th><th>Priority</th><th>Status</th><th>Owner</th><th>Escalations</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  }
+
+  function ticketPage(t) {
+    const list = S.escs.filter((e) => e.ticketId === t.id).sort((a, b) => b.createdAt - a.createdAt);
+    const open = t.status !== "Closed";
+    const raising = S.openForm && S.openForm.kind === "raise";
+    return `<div class="ticket-head"><div class="crumbs"><button class="linkbtn" data-nav="tickets">Tickets</button> / ${t.number}</div>
+        <h1>${t.number} · ${esc(t.subject)}</h1></div>
+      <div class="facts">
+        <div class="fact"><span>Customer</span><b>${esc(t.company)}</b><div class="small muted">${esc(t.contact)}</div></div>
+        <div class="fact"><span>Priority</span>${sev(t.priority)}</div>
+        <div class="fact"><span>Status</span><b>${esc(t.status)}</b></div>
+        <div class="fact"><span>Owner</span><b>${esc(P(t.owner).name)}</b></div>
+        <div class="fact"><span>Escalation level</span><b>${t.level}</b> <span class="small muted">${t.level >= 3 ? "Management" : t.level === 2 ? "Escalated" : "Normal"}</span></div>
+      </div>
+      <section class="panel"><div class="panel-head"><h2>Conversation</h2><span class="small muted">Customer-visible</span></div>
+        <div class="panel-body convo">${t.messages.map((m) => `<div class="msg ${m.agent ? "agent" : ""}"><div class="who">${esc(m.from)} · ${rel(m.at)}</div>${esc(m.body)}</div>`).join("")}</div></section>
+      <section class="panel" id="escalations" aria-label="Escalations">
+        <div class="panel-head"><h2>Escalations (${list.length})</h2>
+          ${canEscalate(me()) && open && !raising ? `<button class="btn primary" data-act="form" data-kind="raise">Escalate</button>` : ""}
+          ${!canEscalate(me()) ? `<span class="small muted">${esc(P(me()).title)}s can't raise escalations</span>` : ""}</div>
+        <div class="panel-body">
+          ${raising ? raiseForm(t) : ""}
+          ${list.length ? list.map(card).join("") : `<p class="nothing" style="margin:0">No escalations. Use <b>Escalate</b> to bring in engineering, a colleague, Sales, Onboarding or management. Updates here are internal and never shown to the customer.</p>`}
+        </div></section>`;
+  }
+
+  function field(id, label, control, o = {}) {
+    const err = S.errors && S.errors[o.name || id];
+    return `<div class="field ${err ? "bad" : ""} ${o.cls || ""}"><label for="${id}">${esc(label)}${o.req ? ' <span class="req" aria-hidden="true">*</span>' : ""}</label>${control}${o.hint ? `<div class="hint">${esc(o.hint)}</div>` : ""}${err ? `<div class="err">${esc(err)}</div>` : ""}</div>`;
+  }
+  const val = (k, d = "") => (S.draft && S.draft[k] != null ? S.draft[k] : d);
+  const opt = (v, l, sel) => `<option value="${esc(v)}" ${sel ? "selected" : ""}>${esc(l)}</option>`;
+
+  function raiseForm(t) {
+    const kind = val("kind", "engineering"), tg = target(kind);
+    const sevV = val("severity", t.priority);
+    const pool = { support_peer: (u) => ["agent", "lead"].includes(role(u)), support_lead: isLead, sales: (u) => role(u) === "sales", onboarding: (u) => role(u) === "onboarding" }[kind];
+    const defaults = { sales: "u6", onboarding: "u7" };
+    const people = pool ? ids(pool).filter((u) => u !== me()) : [];
+    const chosen = val("assignedTo", defaults[kind] || "");
+    const person = tg.target === "person" ? field("f-assignedTo", kind === "support_lead" ? "Support Lead (optional)" : "Person", `<select id="f-assignedTo" name="assignedTo">${opt("", kind === "support_lead" ? "Any Support Lead" : "Choose…", !chosen)}${people.map((u) => opt(u, P(u).name + (u === "u6" && kind === "sales" ? " (account owner)" : u === "u7" && kind === "onboarding" ? " (onboarding owner)" : ""), u === chosen)).join("")}</select>`, { name: "assignedTo", req: kind !== "support_lead" }) : "";
+    const tech = kind === "engineering" ? `
+      ${field("f-team", "Engineering team", `<select id="f-team" name="requestedTeam">${opt("", "Choose…", !val("requestedTeam"))}${Object.entries(TEAMS).map(([k, l]) => opt(k, l, val("requestedTeam") === k)).join("")}</select>`, { name: "requestedTeam", req: true })}
+      <div class="grid2">
+        ${field("f-env", "Environment / version", `<input id="f-env" name="environment" value="${esc(val("environment"))}" placeholder="e.g. Production · v4.18.2">`, { name: "environment", req: true })}
+        ${field("f-evidence", "Evidence (logs, IDs, screenshots)", `<input id="f-evidence" name="evidence" value="${esc(val("evidence"))}">`, { name: "evidence" })}
+        ${field("f-steps", "Reproduction steps", `<textarea id="f-steps" name="reproductionSteps" rows="3">${esc(val("reproductionSteps"))}</textarea>`, { name: "reproductionSteps", req: true })}
+        ${field("f-expected", "Expected result", `<textarea id="f-expected" name="expectedResult" rows="3">${esc(val("expectedResult"))}</textarea>`, { name: "expectedResult", req: true })}
+        ${field("f-actual", "Actual result", `<textarea id="f-actual" name="actualResult" rows="2">${esc(val("actualResult"))}</textarea>`, { name: "actualResult", req: true })}
+        ${field("f-impact", "Customer impact", `<textarea id="f-impact" name="customerImpact" rows="2">${esc(val("customerImpact"))}</textarea>`, { name: "customerImpact", req: true })}
+        ${field("f-business", "Business consequence", `<textarea id="f-business" name="businessConsequence" rows="2">${esc(val("businessConsequence"))}</textarea>`, { name: "businessConsequence", req: true })}
+        ${field("f-workaround", "Workaround", `<textarea id="f-workaround" name="workaround" rows="2">${esc(val("workaround"))}</textarea>`, { name: "workaround" })}
+      </div>` : "";
+    const approvalNote = tg.approval && !isLead(me()) ? `<span class="pill t-amber">Needs Support Lead approval</span>` : tg.approval ? `<span class="pill t-green">You're a lead: no approval needed</span>` : "";
+    return `<form class="f" data-form="raise" novalidate>
+      <div class="row between"><b>Escalate ${t.number}</b>${approvalNote}</div>
+      ${S.formError ? `<div class="formerr" role="alert">${esc(S.formError)}</div>` : ""}
+      <div class="grid2">
+        ${field("f-kind", "Escalate to", `<select id="f-kind" name="kind" data-rerender>${TARGETS.map((x) => opt(x.key, x.label, x.key === kind)).join("")}</select>`, { name: "kind", req: true })}
+        ${field("f-sev", "Severity", `<select id="f-sev" name="severity">${["P1", "P2", "P3", "P4"].map((p) => opt(p, `${p}: respond within ${RESPONSE_LABEL[p]}`, p === sevV)).join("")}</select>`, { name: "severity" })}
+      </div>
+      <div class="target-hint">${esc(tg.hint)}</div>
+      ${person}
+      ${field("f-reason", "What do you need from them?", `<textarea id="f-reason" name="reason" rows="3">${esc(val("reason", t.id === "t1042" ? "Invoice exports over 500 rows fail since Monday's v4.18 release. Customer needs October's invoices for auditors by Friday." : ""))}</textarea>`, { name: "reason", req: true, hint: "Be specific: the question, what you've tried, and what the customer is waiting for." })}
+      ${tech}
+      <div class="row">${t.id === "t1042" && kind === "engineering" ? `<button type="button" class="btn" data-act="fill-sample">Fill sample details</button>` : ""}<span class="spacer"></span><button type="button" class="btn ghost" data-act="cancel-form">Cancel</button><button class="btn primary">Raise escalation</button></div>
+    </form>`;
+  }
+
+  function progress(e) {
+    const steps = [{ label: "Raised", done: true }];
+    if (e.status === "pending_approval" || e.status === "rejected" || e.approvedBy && e.approvedBy !== e.createdBy) steps.push({ label: e.status === "rejected" ? "Declined" : "Approved", done: !["pending_approval"].includes(e.status), bad: e.status === "rejected" });
+    steps.push({ label: "Accepted", done: !!e.acceptedAt }, { label: "Resolved", done: !!e.resolvedAt || e.status === "closed" }, { label: "Confirmed", done: e.status === "closed" });
+    const cur = steps.findIndex((s) => !s.done);
+    return `<ol class="steps" aria-label="Escalation progress">${steps.map((s, i) => `${i ? '<li class="sep" aria-hidden="true">—</li>' : ""}<li class="${s.bad ? "bad" : s.done ? "done" : i === cur && !["cancelled", "rejected"].includes(e.status) ? "now" : ""}"><span class="dot"></span>${s.label}</li>`).join("")}</ol>`;
+  }
+
+  function card(e) {
+    const pm = perms(me(), e), t = ticket(e.ticketId), tg = target(e.kind);
+    const ups = S.updates.filter((x) => x.escId === e.id).sort((a, b) => a.at - b.at);
+    const f = S.openForm && S.openForm.escId === e.id ? S.openForm.kind : null;
+    const needsMe = pm.approve || pm.accept || pm.confirm;
+    const d = e.details;
+    const buttons = [
+      pm.approve && `<button class="btn primary" data-act="form" data-kind="approve" data-esc="${e.id}">Approve or decline</button>`,
+      pm.accept && `<button class="btn primary" data-act="accept" data-esc="${e.id}">Accept</button>`,
+      pm.confirm && `<button class="btn primary" data-act="confirm" data-esc="${e.id}">Confirm resolved</button>`,
+      pm.resolve && `<button class="btn" data-act="form" data-kind="resolve" data-esc="${e.id}">Mark resolved</button>`,
+      pm.update && `<button class="btn" data-act="form" data-kind="update" data-esc="${e.id}">${pm.engineering ? "Add engineering update" : "Add update"}</button>`,
+      pm.reassign && `<button class="btn ghost" data-act="form" data-kind="reassign" data-esc="${e.id}">Reassign</button>`,
+      pm.reopen && `<button class="btn ghost" data-act="form" data-kind="reopen" data-esc="${e.id}">Reopen</button>`,
+      pm.cancel && `<button class="btn ghost" data-act="form" data-kind="withdraw" data-esc="${e.id}">Withdraw</button>`,
+    ].filter(Boolean);
+    return `<article class="esc ${needsMe ? "attn" : ""}">
+      <div class="esc-top">
+        <div class="row between"><div class="row"><span class="esc-title">${esc(tg ? tg.label : e.kind)}</span>${sev(e.severity)}</div>${pill(e.status)}</div>
+        <div class="small muted">To <b>${esc(receiverLabel(e))}</b> · raised by ${esc(P(e.createdBy).name)} ${rel(e.createdAt)} · ${dueText(e)}${e.reopenCount ? ` · reopened ${e.reopenCount}×` : ""}</div>
+        <p class="reason">${esc(e.reason)}</p>
+        ${progress(e)}
+        ${d ? `<details class="tech"><summary>Technical details</summary><dl class="kv">${[["Environment", d.environment], ["Reproduction steps", d.reproductionSteps], ["Expected", d.expectedResult], ["Actual", d.actualResult], ["Customer impact", d.customerImpact], ["Business consequence", d.businessConsequence], ["Evidence", d.evidence], ["Workaround", d.workaround]].filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl></details>` : ""}
+        ${e.kind === "engineering" && (e.engStatus || e.rootCause || e.fixVersion) ? `<div class="eng">${e.engStatus ? `<span>Engineering: <b>${ENG_STATUS[e.engStatus]}</b></span>` : ""}${e.rootCause ? `<span>Root cause: ${esc(e.rootCause)}</span>` : ""}${e.fixVersion ? `<span>Fix version: <code>${esc(e.fixVersion)}</code></span>` : ""}</div>` : ""}
+        ${e.resolution ? `<div class="resolution"><b>Resolution</b> by ${esc(P(e.resolvedBy).name)}: ${esc(e.resolution)}</div>` : ""}
+        ${e.declineReason ? `<div class="small" style="color:var(--red)"><b>Declined:</b> ${esc(e.declineReason)}</div>` : ""}
+        ${e.cancelReason ? `<div class="small muted"><b>Withdrawn:</b> ${esc(e.cancelReason)}</div>` : ""}
+      </div>
+      ${ups.length ? `<div class="updates" aria-label="Internal updates">${ups.map((u) => `<div class="upd"><div class="meta">${esc(P(u.by).name)} · ${rel(u.at)}${u.engStatus ? ` · ${ENG_STATUS[u.engStatus]}` : ""} · internal</div>${esc(u.body)}</div>`).join("")}</div>` : ""}
+      <div class="actions">
+        ${buttons.length ? `<div class="row">${buttons.join("")}</div>` : `<div class="nothing">Nothing for ${esc(P(me()).name)} to do here. ${hintFor(e)}</div>`}
+        ${f ? actionForm(e, f) : ""}
+      </div>
+    </article>`;
+  }
+  function hintFor(e) {
+    if (e.status === "pending_approval") return "Waiting for a Support Lead to approve.";
+    if (e.status === "open") return `Waiting for ${receiverLabel(e)} to accept.`;
+    if (e.status === "in_progress") return `${receiverLabel(e)} is working on it.`;
+    if (e.status === "resolved") return `Waiting for ${P(e.createdBy).name} or the ticket owner to confirm.`;
+    return "";
+  }
+
+  function actionForm(e, kind) {
+    const err = S.formError ? `<div class="formerr" role="alert">${esc(S.formError)}</div>` : "";
+    const wrap = (inner, submit, extra = "") => `<form class="f" data-form="${kind}" data-esc="${e.id}" novalidate>${err}${inner}<div class="row"><span class="spacer"></span><button type="button" class="btn ghost" data-act="cancel-form">Cancel</button>${extra}${submit}</div></form>`;
+    if (kind === "approve") return wrap(field(`f-comment-${e.id}`, "Comment (required to decline)", `<input id="f-comment-${e.id}" name="comment" value="${esc(val("comment"))}">`, { name: "comment" }),
+      `<button class="btn primary" name="decision" value="approve">Approve</button>`, `<button class="btn danger" name="decision" value="decline">Decline</button>`);
+    if (kind === "resolve") return wrap(field(`f-res-${e.id}`, "How was it resolved?", `<textarea id="f-res-${e.id}" name="resolution" rows="3">${esc(val("resolution"))}</textarea>`, { name: "resolution", req: true, hint: "Sent to the person who raised it so they can confirm and update the customer." }), `<button class="btn primary">Mark resolved</button>`);
+    if (kind === "update") {
+      const pm = perms(me(), e);
+      const eng = pm.engineering ? `<div class="grid2">
+        ${field(`f-es-${e.id}`, "Engineering status", `<select id="f-es-${e.id}" name="engStatus">${Object.entries(ENG_STATUS).map(([k, l]) => opt(k, l, (val("engStatus") || e.engStatus || "investigating") === k)).join("")}</select>`, { hint: "Fix released or Won't fix resolves the escalation automatically." })}
+        ${field(`f-rc-${e.id}`, "Root cause", `<input id="f-rc-${e.id}" name="rootCause" value="${esc(val("rootCause", e.rootCause || ""))}">`)}
+        ${field(`f-fv-${e.id}`, "Fix version", `<input id="f-fv-${e.id}" name="fixVersion" value="${esc(val("fixVersion", e.fixVersion || ""))}" placeholder="e.g. v4.18.3">`)}</div>` : "";
+      return wrap(field(`f-body-${e.id}`, "Internal update", `<textarea id="f-body-${e.id}" name="body" rows="2">${esc(val("body"))}</textarea>`, { name: "body", req: true, hint: "Visible to everyone on this escalation, never to the customer." }) + eng, `<button class="btn primary">Post update</button>`);
+    }
+    if (kind === "reassign") return wrap(`<div class="grid2">${field(`f-to-${e.id}`, "New owner", `<select id="f-to-${e.id}" name="to">${opt("", "Choose…", true)}${ids((u) => u !== me()).map((u) => opt(u, `${P(u).name} · ${P(u).title}`, val("to") === u)).join("")}</select>`, { name: "to", req: true })}${field(`f-note-${e.id}`, "Note for them", `<input id="f-note-${e.id}" name="note" value="${esc(val("note"))}">`)}</div>`, `<button class="btn primary">Reassign</button>`);
+    if (kind === "reopen") return wrap(field(`f-ro-${e.id}`, "What's still not right?", `<textarea id="f-ro-${e.id}" name="reason" rows="2">${esc(val("reason"))}</textarea>`, { name: "reason", req: true }), `<button class="btn primary">Reopen</button>`);
+    if (kind === "withdraw") return wrap(field(`f-wd-${e.id}`, "Why withdraw it?", `<input id="f-wd-${e.id}" name="reason" value="${esc(val("reason"))}">`, { name: "reason", req: true }), `<button class="btn">Withdraw escalation</button>`);
+    return "";
+  }
+
+  function inboxPage() {
+    const vs = views();
+    if (!vs.find((v) => v.key === S.tab)) S.tab = "mine";
+    const v = vs.find((x) => x.key === S.tab), list = listFor(S.tab);
+    const rows = list.map((e) => { const t = ticket(e.ticketId);
+      return `<tr class="${isOverdue(e) ? "overdue" : ""}" data-act="open-ticket" data-id="${t.id}" tabindex="0"><td class="num"><b>${t.number}</b></td><td>${esc(t.subject)}<div class="small muted">${esc(t.company)}</div></td><td>${esc(target(e.kind)?.label ?? e.kind)}<div class="small muted">${esc(receiverLabel(e))}</div></td><td>${sev(e.severity)}</td><td>${pill(e.status)}</td><td class="small">${dueText(e)}</td><td class="small">${esc(P(e.createdBy).name)}</td></tr>`; }).join("");
+    return `<div><div class="crumbs">Support</div><h1>Escalations</h1><p class="muted small" style="margin:4px 0 0">What's waiting on ${esc(P(me()).name)}: assigned to you or your team, raised by you, or waiting for your confirmation${isLead(me()) ? " or approval" : ""}.</p></div>
+      <section class="panel"><div class="tabs" role="tablist">${vs.map((x) => { const n = listFor(x.key).length; return `<button role="tab" aria-selected="${x.key === S.tab}" data-act="tab" data-tab="${x.key}">${x.label}${n ? ` <span class="count soft">${n}</span>` : ""}</button>`; }).join("")}</div>
+      ${list.length ? `<div class="tablewrap"><table><thead><tr><th>Ticket</th><th>Subject</th><th>Escalated to</th><th>Severity</th><th>Status</th><th>Response</th><th>Raised by</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<div class="empty">${esc(v.empty)}</div>`}</section>`;
+  }
+
+  function logPage() {
+    const rows = [...S.log].reverse().map((l) => `<tr data-act="open-ticket" data-id="${l.ticketId}" tabindex="0"><td class="num small">${rel(l.at)}</td><td>${esc(P(l.actor).name)}</td><td><b>${ticket(l.ticketId).number}</b></td><td>${esc(l.action)}</td><td class="small"><code>${l.from ?? "∅"}</code> → <code>${l.to}</code></td><td class="small">${l.notified.length ? l.notified.map((u) => esc(P(u).name)).join(", ") : '<span class="muted">Nobody</span>'}</td></tr>`).join("");
+    return `<div><div class="crumbs">For developers</div><h1>Event log</h1><p class="muted small" style="margin:4px 0 0">Every action in this prototype, with the status change and who gets an in-app notification. The person acting is never notified. In the CRM these are the audit entries and <code>notifyUsers</code> / <code>notifyRoles</code> calls.</p></div>
+      <section class="panel"><div class="tablewrap"><table><thead><tr><th>When</th><th>Who</th><th>Ticket</th><th>Action</th><th>Status</th><th>Notified</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  }
+
+  function drawer() {
+    const d = $("#drawer"), list = S.notes.filter((n) => n.to === me());
+    d.innerHTML = `<div class="panel-head"><b>Notifications for ${esc(P(me()).name)}</b>${list.some((n) => !n.read) ? `<button class="linkbtn small" data-act="read-all">Mark all read</button>` : ""}</div>
+      ${list.length ? list.map((n) => `<button class="item ${n.read ? "" : "unread"}" data-act="open-note" data-id="${n.id}"><span class="t">${esc(n.text)}</span><span class="small muted">${rel(n.at)}</span></button>`).join("") : `<div class="empty">No notifications.</div>`}`;
+  }
+
+  let toastTimer;
+  function toast(text) { const t = $("#toast"); t.textContent = text; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), 3200); }
+  const closeForm = () => { S.openForm = null; S.draft = null; S.errors = null; S.formError = null; };
+
+  // ---- events ----
+  document.addEventListener("click", (ev) => {
+    const nav = ev.target.closest("[data-nav]");
+    if (nav) { S.view = { name: nav.dataset.nav }; closeForm(); render(); window.scrollTo(0, 0); return; }
+    const b = ev.target.closest("[data-act]");
+    if (!b) { if (!ev.target.closest("#drawer") && !ev.target.closest("#bell")) { $("#drawer").hidden = true; $("#bell").setAttribute("aria-expanded", "false"); } return; }
+    const act = b.dataset.act, e = b.dataset.esc && S.escs.find((x) => x.id === b.dataset.esc);
+    if (act === "open-ticket") { S.view = { name: "ticket", id: b.dataset.id }; closeForm(); render(); window.scrollTo(0, 0); }
+    else if (act === "tab") { S.tab = b.dataset.tab; render(); }
+    else if (act === "go-tab") { S.view = { name: "inbox" }; S.tab = b.dataset.tab; render(); }
+    else if (act === "switch") { S.me = b.dataset.user; closeForm(); render(); toast(`Now viewing as ${P(S.me).name}`); }
+    else if (act === "hide-tour") { S.tourHidden = true; render(); }
+    else if (act === "form") { closeForm(); S.openForm = { kind: b.dataset.kind, escId: b.dataset.esc || null }; render(); const first = document.querySelector("form.f select, form.f textarea, form.f input"); first && first.focus(); }
+    else if (act === "cancel-form") { closeForm(); render(); }
+    else if (act === "fill-sample") {
+      S.draft = { ...(S.draft || {}), ...readForm(b.closest("form")), requestedTeam: "platform", environment: "Production · v4.18.0", evidence: "Error ID EXP-5521 in the browser console",
+        reproductionSteps: "1. Invoices → filter October 2026 (612 invoices)\n2. Export → Excel", expectedResult: "An .xlsx file downloads", actualResult: "\"Export failed, try again later\" after about 30 seconds",
+        customerImpact: "Can't send October invoices to auditors", businessConsequence: "Audit deadline Friday; customer is up for renewal in January", workaround: "Export in date ranges under 500 invoices" };
+      render();
+    }
+    else if (act === "accept" || act === "confirm") run(() => A[act](e));
+    else if (act === "open-note") { const n = S.notes.find((x) => x.id === b.dataset.id); n.read = true; $("#drawer").hidden = true; S.view = { name: "ticket", id: n.ticketId }; closeForm(); render(); document.getElementById("escalations")?.scrollIntoView({ block: "start" }); }
+    else if (act === "read-all") { S.notes.filter((n) => n.to === me()).forEach((n) => (n.read = true)); render(); }
+  });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Enter" && ev.target.matches("tr[data-act]")) ev.target.click(); if (ev.key === "Escape") { $("#drawer").hidden = true; } });
+  document.addEventListener("change", (ev) => {
+    if (ev.target.id === "as-user") { S.me = ev.target.value; closeForm(); $("#drawer").hidden = true; render(); toast(`Now viewing as ${P(S.me).name}`); }
+    else if (ev.target.matches("[data-rerender]")) { S.draft = { ...readForm(ev.target.closest("form")), assignedTo: "" }; S.errors = null; S.formError = null; render(); document.getElementById(ev.target.id)?.focus(); }
+  });
+  function readForm(f) { const o = {}; new FormData(f).forEach((v, k) => (o[k] = String(v))); return o; }
+  document.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const f = ev.target, v = readForm(f), kind = f.dataset.form, e = f.dataset.esc && S.escs.find((x) => x.id === f.dataset.esc);
+    const blank = (k) => v[k] ?? "";
+    const vals = new Proxy(v, { get: (o, k) => o[k] ?? "" });
+    if (kind === "raise") run(() => A.raise(S.view.id, vals), v);
+    else if (kind === "approve") run(() => (ev.submitter?.value === "decline" ? A.decline(e, vals) : A.approve(e, vals)), v);
+    else if (kind === "withdraw") run(() => A.withdraw(e, vals), v);
+    else run(() => A[kind](e, vals), v);
+    void blank;
+  });
+  function run(fn, draft) {
+    try { const msg = fn(); closeForm(); render(); toast(msg); }
+    catch (err) { if (!(err instanceof Invalid)) throw err; S.draft = draft; S.errors = err.fields; S.formError = err.message; render(); document.querySelector(".field.bad input, .field.bad select, .field.bad textarea")?.focus(); }
+  }
+  $("#bell").addEventListener("click", () => { const d = $("#drawer"); d.hidden = !d.hidden; $("#bell").setAttribute("aria-expanded", String(!d.hidden)); if (!d.hidden) drawer(); });
+  $("#reset").addEventListener("click", () => { S = seed(); $("#drawer").hidden = true; render(); toast("Demo reset to the sample data."); });
+
+  render();
+})();
+</script>

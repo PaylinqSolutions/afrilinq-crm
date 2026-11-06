@@ -1,0 +1,10 @@
+node_modules
+.next
+.data
+storage/*
+!storage/.gitkeep
+.env
+.env.local
+.claude
+.DS_Store
+*.tsbuildinfo
