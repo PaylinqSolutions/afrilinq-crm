@@ -19,6 +19,25 @@ export async function seedIfEmpty(db: DB) {
 }
 
 /**
+ * Production bootstrap: on an empty database, loads reference data (roles, permissions, pipeline, SLA,
+ * rules, templates) and creates a single Super Admin from ADMIN_EMAIL / ADMIN_PASSWORD. No demo data.
+ */
+export async function seedAdminIfEmpty(db: DB, opts: { email: string; password: string; name?: string }) {
+  const [{ n }] = await db.select({ n: count() }).from(s.users);
+  if (n > 0) return false;
+  const { hashPassword, validatePassword } = await import("@/server/auth-core");
+  const problem = validatePassword(opts.password);
+  if (problem) throw new Error(`ADMIN_PASSWORD is too weak: ${problem}`);
+  await seedReference(db);
+  const [superAdmin] = await db.select().from(s.roles).where(eq(s.roles.key, "super_admin"));
+  const [u] = await db.insert(s.users).values({
+    email: opts.email.trim().toLowerCase(), name: opts.name?.trim() || "Administrator", passwordHash: hashPassword(opts.password),
+  }).returning();
+  await db.insert(s.userRoles).values({ userId: u.id, roleId: superAdmin.id });
+  return true;
+}
+
+/**
  * Adds permissions introduced after a database was created and grants each new one to the roles whose
  * default definition includes it. Existing role customisations made by admins are never changed.
  */

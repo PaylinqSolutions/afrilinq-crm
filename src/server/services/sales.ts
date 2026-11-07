@@ -11,7 +11,7 @@ import { invalid, notFound, forbidden, conflict } from "../errors";
 import { parse } from "../validate";
 import { getSettings } from "../settings";
 import { notifyRoles } from "../notify";
-import { leadScope, dealScope } from "./scope";
+import { leadScope, dealScope, companyScope, contactScope } from "./scope";
 import { emit } from "./workflows";
 import { ensureHandoverForDeal } from "./handover";
 import { assertFresh, assertUpdated, sameVersion, type Version } from "../concurrency";
@@ -96,21 +96,29 @@ export async function updateLead(db: DB, actor: Actor, id: string, input: unknow
  * An existing contact who is the same person as the lead: same email (any case) first, then same phone number
  * (last 10 digits, formatting ignored), then the same full name at the company with the lead's organisation name.
  */
-export async function findMatchingContact(db: Executor, email: string | null | undefined, phone: string | null | undefined, name?: string | null, organization?: string | null) {
+/** Throws unless the company exists and the actor may see it. Linking a deal grants company visibility, so this gate must come first. */
+async function assertCompanyVisible(db: Executor, actor: Actor, id: string, message = "Choose a company you have access to.") {
+  const [co] = await db.select({ id: companies.id }).from(companies).where(and(eq(companies.id, id), isNull(companies.deletedAt), companyScope(db, actor)));
+  if (!co) throw invalid(message, { companyId: "Not available." });
+}
+
+/** Finds an existing contact for a lead. Pass `actor` to search only contacts that user may see. */
+export async function findMatchingContact(db: Executor, email: string | null | undefined, phone: string | null | undefined, name?: string | null, organization?: string | null, actor?: Actor) {
   const cols = { id: contacts.id, firstName: contacts.firstName, lastName: contacts.lastName, email: contacts.email, phone: contacts.phone, companyId: contacts.companyId, companyName: companies.name, lifecycleStage: contacts.lifecycleStage };
   const base = () => db.select(cols).from(contacts).leftJoin(companies, eq(companies.id, contacts.companyId));
+  const scope = actor ? contactScope(db, actor) : undefined;
   if (email?.trim()) {
-    const [m] = await base().where(and(sql`lower(${contacts.email}) = ${email.trim().toLowerCase()}`, isNull(contacts.deletedAt))).limit(1);
+    const [m] = await base().where(and(sql`lower(${contacts.email}) = ${email.trim().toLowerCase()}`, isNull(contacts.deletedAt), scope)).limit(1);
     if (m) return { ...m, matchedBy: "email" as const };
   }
   const digits = (phone ?? "").replace(/\D/g, "").slice(-10);
   if (digits.length >= 7) {
-    const [m] = await base().where(and(sql`right(regexp_replace(coalesce(${contacts.phone}, ''), '[^0-9]', '', 'g'), 10) = ${digits}`, isNull(contacts.deletedAt))).limit(1);
+    const [m] = await base().where(and(sql`right(regexp_replace(coalesce(${contacts.phone}, ''), '[^0-9]', '', 'g'), 10) = ${digits}`, isNull(contacts.deletedAt), scope)).limit(1);
     if (m) return { ...m, matchedBy: "phone" as const };
   }
   if (name?.trim() && organization?.trim()) {
     const [m] = await base().where(and(sql`lower(trim(${contacts.firstName} || ' ' || ${contacts.lastName})) = ${name.trim().toLowerCase().replace(/\s+/g, " ")}`,
-      sql`lower(trim(${companies.name})) = ${organization.trim().toLowerCase()}`, isNull(contacts.deletedAt))).limit(1);
+      sql`lower(trim(${companies.name})) = ${organization.trim().toLowerCase()}`, isNull(contacts.deletedAt), scope)).limit(1);
     if (m) return { ...m, matchedBy: "name at the same company" as const };
   }
   return null;
@@ -127,13 +135,17 @@ export async function convertLead(db: DB, actor: Actor, id: string, opts: { comp
   if (lead.status === "Disqualified") throw conflict("Disqualified leads cannot be converted. Change the status first.");
   const result = await db.transaction(async (tx) => {
     // Reuse the person if they're already a contact (unless the user explicitly asked for a separate contact).
-    const match = opts.newContact ? null : await findMatchingContact(tx, lead.email, lead.phone, lead.contactName, lead.organization);
+    const match = opts.newContact ? null : await findMatchingContact(tx, lead.email, lead.phone, lead.contactName, lead.organization, actor);
     let companyId = opts.companyId ?? match?.companyId ?? null;
+    if (companyId) await assertCompanyVisible(tx, actor, companyId);
     if (!companyId && lead.organization?.trim()) {
+      // Exact (case-insensitive) name match. Not ilike: "%" or "_" in the organisation would match other companies.
+      const org = lead.organization.trim();
       const [existing] = await tx.select({ id: companies.id }).from(companies)
-        .where(and(ilike(companies.name, lead.organization.trim()), isNull(companies.deletedAt)));
+        .where(and(sql`lower(trim(${companies.name})) = ${org.toLowerCase()}`, isNull(companies.deletedAt)));
+      if (existing) await assertCompanyVisible(tx, actor, existing.id, `A company named “${org}” already exists but isn't one of your accounts. Ask a Sales Manager to link it, or pick a company.`);
       companyId = existing?.id ?? (await tx.insert(companies).values({
-        name: lead.organization.trim(), segment: lead.segment ?? "SME", region: lead.region, ownerId: lead.ownerId ?? actor.id, lifecycle: "prospect",
+        name: org, segment: lead.segment ?? "SME", region: lead.region, ownerId: lead.ownerId ?? actor.id, lifecycle: "prospect",
       }).returning({ id: companies.id }))[0].id;
     }
     if (createDeal && !companyId) throw invalid("A deal needs a company. Add the organisation, pick a company, or convert to a contact only.", { companyId: "Required to open a deal." });
@@ -266,7 +278,8 @@ async function discountState(db: DB, before: { discountPct: number | null; disco
 export async function createDeal(db: DB, actor: Actor, input: unknown) {
   assertCan(actor, "deals.edit");
   const v = parse(dealSchema, input);
-  const [company] = await db.select().from(companies).where(eq(companies.id, v.companyId));
+  // Scoped: owning a deal on a company grants visibility of it, so users may only open deals on companies they can already see.
+  const [company] = await db.select().from(companies).where(and(eq(companies.id, v.companyId), isNull(companies.deletedAt), companyScope(db, actor)));
   if (!company) throw invalid("Choose a company.", { companyId: "Company not found." });
   const ownerId = can(actor, "deals.reassign") && v.ownerId ? v.ownerId : actor.id;
   const stages = await getStages(db);

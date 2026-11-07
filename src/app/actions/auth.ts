@@ -18,7 +18,8 @@ export async function loginAction(_: ActionResult | null, fd: FormData): Promise
     throw e;
   }
   const next = String(fd.get("next") ?? "/");
-  redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/");
+  // Same-site paths only. Browsers read "\" as "/" and drop tabs/newlines, so "/\evil.com" or "/\t/evil.com" would leave the site.
+  redirect(/^\/(?!\/)[^\\\s]*$/.test(next) ? next : "/");
 }
 
 export async function logoutAction() {

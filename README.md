@@ -242,6 +242,8 @@ See [`.env.example`](.env.example). Summary:
 | `PGLITE_DIR` | Embedded DB directory (default `./.data/pglite`). |
 | `AUTO_SEED` | Load demo data into an empty DB. Defaults to `true` in development, `false` when `NODE_ENV=production`. |
 | `SEED_PASSWORD` | Demo users' password (demo only). |
+| `NODE_ENV` | `development` or `production`. Next.js sets it automatically (`next dev` → development, `next build`/`next start` → production); the `.env` value is used by scripts such as `npm run db:reset`. |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | When `NODE_ENV=production` and the email and password are set, an empty database gets reference data plus this single Super Admin, with no demo data. If they are not set, the demo sign-ins above are seeded (subject to `AUTO_SEED`). |
 | `APP_URL` | Public base URL for invitation and customer ticket links. |
 | `CRON_SECRET` | Bearer token for `POST /api/cron/sweep`. Endpoint disabled when unset. |
 | `STORAGE_DIR` | Private upload directory. Use a persistent volume, or replace `files.ts` storage with object storage. |
@@ -253,7 +255,7 @@ No secrets are committed. `.env*` and `.data/` are git-ignored.
 ## Deployment
 
 1. Create a Postgres database (e.g. a Supabase project) and set `DATABASE_URL`. Migrations run automatically on first connection, or run `npm run db:migrate` in your release step.
-2. Create the first administrator. Either run once with `AUTO_SEED=true` against an **empty, non-production** database and invite real users from `admin@afrilinq.demo`, or insert one admin user and role via SQL. Never load demo data into production.
+2. Create the first administrator: set `ADMIN_EMAIL` and `ADMIN_PASSWORD` (and optionally `ADMIN_NAME`). On first start against an empty database the app creates that Super Admin and the reference data only, then you invite real users from it. Never load demo data into production.
 3. Set `APP_URL`, `CRON_SECRET`, `STORAGE_DIR` (a persistent volume) and `NODE_ENV=production`.
 4. Long-running Node host (Docker, VM, Render, Railway, Fly): `npm ci && npm run build && npm start`. The in-process sweep runs every 60s.
    Serverless (e.g. Vercel): set `SWEEP_INTERVAL_SECONDS=0`, schedule `POST /api/cron/sweep` every 1–5 minutes, and move file storage to object storage (local disk is ephemeral).

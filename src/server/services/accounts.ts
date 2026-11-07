@@ -220,8 +220,10 @@ export async function customer360(db: DB, actor: Actor, id: string) {
 }
 
 export async function setCustomFieldValues(db: DB, actor: Actor, entityType: string, entityId: string, values: Record<string, string>) {
-  assertCan(actor, entityType === "company" ? "accounts.edit" : "deals.edit");
-  if (entityType === "company") await getCompany(db, actor, entityId);
+  // Custom fields exist only on companies (see addCustomField); reject anything else so no unscoped record can be written.
+  if (entityType !== "company") throw invalid("Custom fields are currently supported on companies.");
+  assertCan(actor, "accounts.edit");
+  await getCompany(db, actor, entityId);
   const defs = await db.select().from(customFields).where(eq(customFields.entityType, entityType));
   const errs: Record<string, string> = {};
   for (const d of defs) {

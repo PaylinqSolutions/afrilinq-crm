@@ -28,7 +28,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
   const reps = await usersInRoles(db, ["sales_executive", "sales_manager"]);
   const ps = await db.select({ id: products.id, name: products.name }).from(products);
   const editable = can(actor, "leads.edit") && lead.status !== "Converted";
-  const match = editable ? await findMatchingContact(db, lead.email, lead.phone, lead.contactName, lead.organization) : null;
+  const match = editable ? await findMatchingContact(db, lead.email, lead.phone, lead.contactName, lead.organization, actor) : null;
   const cos = editable ? (await listCompanies(db, actor, {}, true)).rows : [];
   const companyMatch = lead.organization ? cos.find((c) => c.name.trim().toLowerCase() === lead.organization!.trim().toLowerCase()) : undefined;
   return (

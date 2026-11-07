@@ -36,10 +36,16 @@ async function connect(): Promise<DB> {
     db = drizzlePglite(client, { schema });
     await migratePglite(db, { migrationsFolder: MIGRATIONS });
   }
-  const { syncPermissions } = await import("./seed");
+  const { syncPermissions, seedIfEmpty, seedAdminIfEmpty } = await import("./seed");
   await syncPermissions(db);
-  if ((process.env.AUTO_SEED ?? (process.env.NODE_ENV === "production" ? "false" : "true")) !== "false") {
-    const { seedIfEmpty } = await import("./seed");
+  const isProd = process.env.NODE_ENV === "production";
+  const adminEmail = process.env.ADMIN_EMAIL?.trim();
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (isProd && adminEmail && adminPassword) {
+    // Production with admin credentials: create only that Super Admin on an empty database.
+    await seedAdminIfEmpty(db, { email: adminEmail, password: adminPassword, name: process.env.ADMIN_NAME });
+  } else if ((process.env.AUTO_SEED ?? (isProd ? "false" : "true")) !== "false") {
+    // Otherwise fall back to the demo data and demo sign-ins documented in the README.
     await seedIfEmpty(db);
   }
   return db;
